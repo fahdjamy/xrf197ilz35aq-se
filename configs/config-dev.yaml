@@ -1,0 +1,16 @@
+environment: DEV
+
+log:
+  outputFile: ".logs/xrf-se.log"
+
+redis:
+  database: 0
+  protocol: 2
+  poolSize: 5
+  password: ""
+  maxRetries: 1
+  minIdleConns: 2
+  dialTimeout: 10
+  readTimeout: 15
+  writeTimeout: 30
+  address: "127.0.0.1:6379"
