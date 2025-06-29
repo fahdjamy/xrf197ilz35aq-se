@@ -46,8 +46,8 @@ func loadConfigs(env string) (*Config, error) {
 
 		// Rules: viper checks for an environment variable w/ a name matching the key uppercased and prefixed with the EnvPrefix if set.
 		viper.AutomaticEnv()
-		viper.SetEnvPrefix("XRF_Q2") // will be uppercased automatically
-		// this is useful e.g., want to use . in Get() calls, but environmental variables are to use _ delimiters (e.g., app.port -> APP_PORT)
+		viper.SetEnvPrefix("XRF_SE") // will be uppercased automatically
+		// this is useful, e.g., want to use . in Get() calls, but environmental variables are to use _ delimiters (e.g., app.port -> APP_PORT)
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 		// Read the config file
