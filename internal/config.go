@@ -5,10 +5,20 @@ import (
 	"github.com/spf13/viper"
 	"strings"
 	"sync"
+	"time"
 )
 
 type LogConfig struct {
 	OutputFile string `yaml:"outputFile"`
+}
+
+type AppConfig struct {
+	Port int `yaml:"port"`
+
+	IdleTimeout     time.Duration `yaml:"idleTimeout"`
+	ReadTimeout     time.Duration `yaml:"readTimeout"`
+	WriteTimeout    time.Duration `yaml:"writeTimeout"`
+	GracefulTimeout time.Duration `yaml:"gracefulTimeout"`
 }
 
 type RedisConfig struct {
@@ -25,8 +35,9 @@ type RedisConfig struct {
 }
 
 type Config struct {
-	Log   LogConfig   `yml:"log"`
-	Redis RedisConfig `yml:"redis"`
+	Log         LogConfig   `yml:"log"`
+	Redis       RedisConfig `yml:"redis"`
+	Application AppConfig   `yml:"application"`
 }
 
 var (
