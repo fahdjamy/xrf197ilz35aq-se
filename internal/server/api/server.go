@@ -1,4 +1,4 @@
-package http
+package api
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 	"xrf197ilz35aq/internal"
-	"xrf197ilz35aq/internal/server/http/handlers"
+	"xrf197ilz35aq/internal/server/api/handlers"
 )
 
 func CreateServer(logger slog.Logger, appConfig internal.AppConfig) *http.Server {

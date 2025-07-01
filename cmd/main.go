@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 	"xrf197ilz35aq/internal"
-	xrfHttp "xrf197ilz35aq/internal/server/http"
+	"xrf197ilz35aq/internal/server/api"
 )
 
 func main() {
@@ -26,10 +26,10 @@ func main() {
 		log.Fatalf("Failed to setup logger: %v", err)
 	}
 
-	server := xrfHttp.CreateServer(*logger, config.Application)
+	server := api.CreateServer(*logger, config.Application)
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("serverStarted=false :: error starting http server", "error", err)
+			logger.Error("serverStarted=false :: error starting api server", "error", err)
 		}
 	}()
 
