@@ -7,3 +7,6 @@ const (
 	ProductionEnv = "PRODUCTION"
 	Environment   = "XRF_ENV"
 )
+
+const ContentType = "Content-Type"
+const ApplicationJson = "application/json"
