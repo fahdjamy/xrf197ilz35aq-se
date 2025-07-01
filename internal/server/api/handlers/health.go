@@ -5,11 +5,11 @@ import (
 	"net/http"
 )
 
-type HealthRoutes struct {
+type healthRoutes struct {
 	logger slog.Logger
 }
 
-func (hr *HealthRoutes) healthCheck(w http.ResponseWriter, _ *http.Request) {
+func (hr *healthRoutes) healthCheck(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("OK"))
 	if err != nil {
@@ -18,12 +18,12 @@ func (hr *HealthRoutes) healthCheck(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (hr *HealthRoutes) RegisterRoutes(serveMux *http.ServeMux) {
-	serveMux.Handle("GET /health", http.Handler(http.HandlerFunc(hr.healthCheck)))
+func (hr *healthRoutes) RegisterRoutes(serveMux *http.ServeMux) {
+	serveMux.HandleFunc("GET /health", hr.healthCheck)
 }
 
 func NewReqHealthHandlers(logger slog.Logger) RequestHandler {
-	return &HealthRoutes{
+	return &healthRoutes{
 		logger: logger,
 	}
 }
