@@ -6,16 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
+	"time"
 )
 
 type ApiClient struct {
 	baseURL        string
 	httpClient     *http.Client
-	logger         slog.Logger
 	defaultHeaders map[string]string
 }
+type Option func(*ApiClient)
 
 func (c *ApiClient) do(ctx context.Context, method, path string, body interface{}, customHeaders map[string]string, responseStruct interface{}) error {
 	// 1. Create the full URL path.
@@ -75,4 +75,36 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 		}
 	}
 	return nil
+}
+
+func NewApiClient(baseURL string, options ...Option) *ApiClient {
+	apiClient := &ApiClient{
+		baseURL:        baseURL,
+		httpClient:     http.DefaultClient,
+		defaultHeaders: make(map[string]string),
+	}
+
+	// apply all the options
+	for _, option := range options {
+		option(apiClient)
+	}
+	return apiClient
+}
+
+func WithTimeout(timeout time.Duration) Option {
+	return func(apiClient *ApiClient) {
+		apiClient.httpClient.Timeout = timeout
+	}
+}
+
+func WithDefaultHeader(defaultHeaders map[string]string) Option {
+	return func(apiClient *ApiClient) {
+		if apiClient.defaultHeaders == nil {
+			for k, v := range defaultHeaders {
+				if _, ok := apiClient.defaultHeaders[k]; !ok {
+					apiClient.defaultHeaders[k] = v
+				}
+			}
+		}
+	}
 }
