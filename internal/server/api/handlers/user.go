@@ -28,9 +28,9 @@ func (user *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (user *userHandler) RegisterRoutes(serveMux *http.ServeMux) {
-	serveMux.HandleFunc("POST /user/", user.createUser)
+	serveMux.HandleFunc("POST /user", user.createUser)
 }
 
-func CreateUserHandler(logger slog.Logger) RequestHandler {
+func NewUserReqHandler(logger slog.Logger) RequestHandler {
 	return &userHandler{logger: logger}
 }

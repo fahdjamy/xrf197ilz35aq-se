@@ -33,7 +33,7 @@ func main() {
 		}
 	}()
 
-	logger.Info("***** xrf197ilz35aq started successfully *******")
+	logger.Info("***** xrf197ilz35aq started successfully *******", "port", config.Application.Port)
 
 	ch := make(chan os.Signal, 1)
 	// Accept graceful shutdowns when quit via SIGINT (Ctrl+C), SIGTERM (used by Docker, Kubernetes) or SIGQUIT.

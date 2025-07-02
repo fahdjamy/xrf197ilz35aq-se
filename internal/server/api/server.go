@@ -16,8 +16,10 @@ func CreateServer(logger slog.Logger, appConfig internal.AppConfig) *http.Server
 
 	// create request (routes) handlers
 	healthReqHandler := handlers.NewReqHealthHandlers(logger)
+	userReqHandler := handlers.NewUserReqHandler(logger)
 
 	reqHandlers = append(reqHandlers, healthReqHandler)
+	reqHandlers = append(reqHandlers, userReqHandler)
 
 	for _, handler := range reqHandlers {
 		handler.RegisterRoutes(serverMux)
