@@ -17,7 +17,7 @@ type ApiClient struct {
 }
 type Option func(*ApiClient)
 
-func (c *ApiClient) do(ctx context.Context, method, path string, body interface{}, customHeaders map[string]string, responseStruct interface{}) error {
+func (c *ApiClient) do(ctx context.Context, method, path string, body interface{}, customHeaders map[string]string, into interface{}) error {
 	// 1. Create the full URL path.
 	fullURL := c.baseURL + path
 
@@ -68,13 +68,37 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 		return fmt.Errorf("client error: %d %s", resp.StatusCode, string(responseBytes))
 	}
 
-	// 7. Decode the successful response body into the provided struct 'v'
-	if responseStruct != nil {
-		if err := json.NewDecoder(resp.Body).Decode(responseStruct); err != nil {
+	// 7. Decode the successful response body into the provided struct 'into'
+	if into != nil {
+		if err := json.NewDecoder(resp.Body).Decode(into); err != nil {
 			return fmt.Errorf("failed to decode response body: %w", err)
 		}
 	}
 	return nil
+}
+
+// Get performs a GET request.
+// - Param -> 'path' is the endpoint path (e.g., "/users/123").
+// - Param -> 'customHeaders' allows for adding request-specific headers.
+// - Param -> 'into' is the struct to decode the JSON response into.
+func (c *ApiClient) Get(ctx context.Context, path string, customHeaders map[string]string, into interface{}) error {
+	return c.do(ctx, http.MethodGet, path, nil, customHeaders, into)
+}
+
+// Post performs a POST request.
+// 'Body' is the request payload, which will be marshaled to JSON.
+func (c *ApiClient) Post(ctx context.Context, path string, body interface{}, customHeaders map[string]string, into interface{}) error {
+	return c.do(ctx, http.MethodPost, path, body, customHeaders, into)
+}
+
+// Put performs a PUT request.
+func (c *ApiClient) Put(ctx context.Context, path string, body interface{}, customHeaders map[string]string, into interface{}) error {
+	return c.do(ctx, http.MethodPut, path, body, customHeaders, into)
+}
+
+// Delete performs a DELETE request.
+func (c *ApiClient) Delete(ctx context.Context, path string, customHeaders map[string]string, into interface{}) error {
+	return c.do(ctx, http.MethodDelete, path, nil, customHeaders, into)
 }
 
 func NewApiClient(baseURL string, options ...Option) *ApiClient {
