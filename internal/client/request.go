@@ -4,11 +4,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 )
+
+type APIError struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+	Err     error  `json:"error"`
+}
+
+func (aErr *APIError) Error() string {
+	return fmt.Sprintf("API error %d: %s", aErr.Code, aErr.Message)
+}
 
 type ApiClient struct {
 	baseURL        string
@@ -63,9 +74,17 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		responseBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("failed to read response body: %w", err)
+			return &APIError{
+				Message: "failed to read client response body",
+				Code:    500,
+				Err:     err,
+			}
 		}
-		return fmt.Errorf("client error: %d %s", resp.StatusCode, string(responseBytes))
+		return &APIError{
+			Code:    resp.StatusCode,
+			Message: "client error response",
+			Err:     errors.New(string(responseBytes)),
+		}
 	}
 
 	// 7. Decode the successful response body into the provided struct 'into'
