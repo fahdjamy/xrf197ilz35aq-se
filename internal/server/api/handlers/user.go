@@ -3,6 +3,7 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
+	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/server/api/request"
 	"xrf197ilz35aq/internal/server/api/response"
 )
@@ -12,7 +13,7 @@ type userHandler struct {
 }
 
 func (user *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
-	var userReq request.UserRequest
+	var userReq model.UserRequest
 
 	err := request.DecodeJSONBody(r, &userReq)
 	if err != nil {
