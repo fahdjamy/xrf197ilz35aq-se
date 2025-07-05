@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"strings"
 	"xrf197ilz35aq/internal"
+	"xrf197ilz35aq/internal/client"
 )
 
 type Err struct {
 	Status int
-	Msg    string
 	Err    error
+	Msg    string
 }
 
 func (e *Err) Error() string {
@@ -42,11 +43,24 @@ func DecodeJSONBody[T any](r *http.Request, dst *T) error {
 
 func parseBodyError(err error) *Err {
 	var syntaxError *json.SyntaxError
+	var apiClientError *client.APIError
 	var maxBytesError *http.MaxBytesError
 	var unmarshalTypeError *json.UnmarshalTypeError
 	var invalidUnmarshalError *json.InvalidUnmarshalError
 
 	switch {
+	// API client error
+	case errors.As(err, &apiClientError):
+		code := apiClientError.Code
+		if code <= 200 || code > 510 {
+			code = http.StatusInternalServerError
+		}
+		return &Err{
+			Err:    err,
+			Status: code,
+			Msg:    apiClientError.Message,
+		}
+
 	// Syntax errors in the JSON
 	case errors.As(err, &syntaxError):
 		msg := fmt.Sprintf("Request contains badly-formed JSON (at position %d)", syntaxError.Offset)
@@ -88,7 +102,7 @@ func parseBodyError(err error) *Err {
 
 	default:
 		return &Err{
-			Status: http.StatusBadRequest,
+			Status: http.StatusInternalServerError,
 			Msg:    fmt.Sprintf("Internal :: Err=%s", err.Error()),
 		}
 	}

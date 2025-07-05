@@ -7,9 +7,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 )
+
+var statusCodeMap = map[int]int{
+	http.StatusInternalServerError: http.StatusBadGateway,
+	http.StatusBadGateway:          http.StatusBadGateway,
+}
 
 type APIError struct {
 	Message string `json:"message"`
@@ -23,9 +29,11 @@ func (aErr *APIError) Error() string {
 
 type ApiClient struct {
 	baseURL        string
+	logger         slog.Logger
 	httpClient     *http.Client
 	defaultHeaders map[string]string
 }
+
 type Option func(*ApiClient)
 
 func (c *ApiClient) do(ctx context.Context, method, path string, body interface{}, customHeaders map[string]string, into interface{}) error {
@@ -37,7 +45,11 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("failed to marshal request body: %w", err)
+			return &APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "failed to marshal request body",
+				Err:     fmt.Errorf("failed to marshal request body: %w", err),
+			}
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
@@ -45,7 +57,11 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	// 3. Create the HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBody)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return &APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to marshal request body",
+			Err:     fmt.Errorf("failed to create request: %w", err),
+		}
 	}
 
 	// 4. Set headers
@@ -67,30 +83,44 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	// 5. Execute the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
+		return &APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "failed to marshal request body",
+			Err:     fmt.Errorf("failed to execute request: %w", err),
+		}
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
+	statusCode := resp.StatusCode
+	if statusCode < 200 || statusCode >= 400 {
 		responseBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
+			errMsg := "failed to read client response body"
+			c.logger.Error("Internal server error", "code", http.StatusInternalServerError, "error", errMsg)
 			return &APIError{
-				Message: "failed to read client response body",
-				Code:    500,
 				Err:     err,
+				Message: "Internal server error",
+				Code:    http.StatusInternalServerError,
 			}
 		}
+		c.logger.Error("client returned error", "code", statusCode, "error", string(responseBytes))
 		return &APIError{
-			Code:    resp.StatusCode,
 			Message: "client error response",
 			Err:     errors.New(string(responseBytes)),
+			Code:    clientErrorStatusCodeMapper(statusCode),
 		}
 	}
 
 	// 7. Decode the successful response body into the provided struct 'into'
 	if into != nil {
 		if err := json.NewDecoder(resp.Body).Decode(into); err != nil {
-			return fmt.Errorf("failed to decode response body: %w", err)
+			errMsg := "failed to decode response body"
+			c.logger.Error("Internal server error", "code", http.StatusInternalServerError, "error", errMsg)
+			return &APIError{
+				Err:     err,
+				Message: "Internal server error",
+				Code:    http.StatusInternalServerError,
+			}
 		}
 	}
 	return nil
@@ -120,8 +150,9 @@ func (c *ApiClient) Delete(ctx context.Context, path string, customHeaders map[s
 	return c.do(ctx, http.MethodDelete, path, nil, customHeaders, into)
 }
 
-func NewApiClient(baseURL string, options ...Option) *ApiClient {
+func NewApiClient(baseURL string, logger slog.Logger, options ...Option) *ApiClient {
 	apiClient := &ApiClient{
+		logger:         logger,
 		baseURL:        baseURL,
 		httpClient:     http.DefaultClient,
 		defaultHeaders: make(map[string]string),
@@ -150,4 +181,15 @@ func WithDefaultHeader(defaultHeaders map[string]string) Option {
 			}
 		}
 	}
+}
+
+func clientErrorStatusCodeMapper(statusCode int) int {
+	// All 400x to <500x error codes should be mapped as server errors
+	if statusCode >= 400 && statusCode < 500 {
+		return http.StatusInternalServerError
+	}
+	if statusCode < 300 {
+		return http.StatusBadGateway
+	}
+	return statusCodeMap[statusCode]
 }
