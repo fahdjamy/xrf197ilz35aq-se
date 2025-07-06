@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 	"xrf197ilz35aq/internal"
+	"xrf197ilz35aq/internal/client"
+	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server/api"
 )
 
@@ -26,7 +28,20 @@ func main() {
 		log.Fatalf("Failed to setup logger: %v", err)
 	}
 
-	server := api.CreateServer(*logger, config.Application)
+	/// Create API Client
+	defaultHeaders := make(map[string]string)
+	defaultHeaders["Content-Type"] = "application/json"
+	apiClient := client.NewApiClient(
+		config.Service.Organization.BaseURL,
+		*logger,
+		client.WithTimeout(config.Service.Organization.APIClientTimeout),
+		client.WithDefaultHeader(defaultHeaders))
+
+	/// Create request processors
+	userProcessor := processor.NewUserProcessor(*logger, *apiClient)
+	processors := processor.Processors{UserProcessor: *userProcessor}
+
+	server := api.CreateServer(*logger, config.Application, &processors)
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("serverStarted=false :: error starting api server", "error", err)

@@ -47,6 +47,6 @@ func (uh *userHandler) RegisterRoutes(serveMux *http.ServeMux) {
 	serveMux.HandleFunc("POST /user", uh.createUser)
 }
 
-func NewUserReqHandler(logger slog.Logger) RequestHandler {
-	return &userHandler{logger: logger}
+func NewUserReqHandler(logger slog.Logger, userProcessor processor.UserProcessor) RequestHandler {
+	return &userHandler{logger: logger, processor: userProcessor}
 }

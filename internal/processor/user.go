@@ -35,3 +35,10 @@ func (up *UserProcessor) CreateUser(ctx context.Context, userReq model.UserReque
 
 	return userResp, nil
 }
+
+func NewUserProcessor(logger slog.Logger, apiClient client.ApiClient) *UserProcessor {
+	return &UserProcessor{
+		log:       logger,
+		apiClient: apiClient,
+	}
+}

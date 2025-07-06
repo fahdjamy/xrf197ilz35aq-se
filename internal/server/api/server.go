@@ -6,17 +6,18 @@ import (
 	"net/http"
 	"time"
 	"xrf197ilz35aq/internal"
+	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server/api/handlers"
 )
 
-func CreateServer(logger slog.Logger, appConfig internal.AppConfig) *http.Server {
+func CreateServer(logger slog.Logger, appConfig internal.AppConfig, processors *processor.Processors) *http.Server {
 	serverMux := http.NewServeMux()
 
 	reqHandlers := make([]handlers.RequestHandler, 0)
 
 	// create request (routes) handlers
 	healthReqHandler := handlers.NewReqHealthHandlers(logger)
-	userReqHandler := handlers.NewUserReqHandler(logger)
+	userReqHandler := handlers.NewUserReqHandler(logger, processors.UserProcessor)
 
 	reqHandlers = append(reqHandlers, healthReqHandler)
 	reqHandlers = append(reqHandlers, userReqHandler)
