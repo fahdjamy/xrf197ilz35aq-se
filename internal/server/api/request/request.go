@@ -9,6 +9,7 @@ import (
 	"strings"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/client"
+	"xrf197ilz35aq/internal/processor"
 )
 
 type Err struct {
@@ -45,6 +46,7 @@ func parseBodyError(err error) *Err {
 	var syntaxError *json.SyntaxError
 	var apiClientError *client.APIError
 	var maxBytesError *http.MaxBytesError
+	var externalErr *processor.ExternalError
 	var unmarshalTypeError *json.UnmarshalTypeError
 	var invalidUnmarshalError *json.InvalidUnmarshalError
 
@@ -59,6 +61,13 @@ func parseBodyError(err error) *Err {
 			Err:    err,
 			Status: code,
 			Msg:    apiClientError.Message,
+		}
+
+	// External errors are errors due to the client
+	case errors.As(err, &externalErr):
+		return &Err{
+			Status: externalErr.Code,
+			Msg:    externalErr.Message,
 		}
 
 	// Syntax errors in the JSON
