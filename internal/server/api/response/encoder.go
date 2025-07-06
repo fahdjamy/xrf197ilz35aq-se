@@ -2,9 +2,12 @@ package response
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"xrf197ilz35aq/internal"
+	"xrf197ilz35aq/internal/processor"
 )
 
 type DataResponse struct {
@@ -48,9 +51,24 @@ func WritePaginatedResponse(data DataResponse, pag *pagination, w http.ResponseW
 	}
 }
 
-func WriteErrorResponse(_ error, w http.ResponseWriter, logger slog.Logger) {
+func WriteErrorResponse(errObj error, w http.ResponseWriter, logger slog.Logger) {
 	msg := "Something went wrong"
 	statusCode := http.StatusInternalServerError
+
+	var externalError *processor.ExternalError
+
+	switch {
+	case errors.As(errObj, &externalError):
+		if externalError.Code >= 400 {
+			statusCode = externalError.Code
+		} else {
+			statusCode = http.StatusInternalServerError
+		}
+		msg = externalError.Message
+	default:
+		statusCode = http.StatusInternalServerError
+		msg = "Something went wrong"
+	}
 
 	w.Header().Set(internal.ContentType, internal.ApplicationJson)
 	w.WriteHeader(statusCode)
@@ -59,6 +77,6 @@ func WriteErrorResponse(_ error, w http.ResponseWriter, logger slog.Logger) {
 
 	err := json.NewEncoder(w).Encode(errResp)
 	if err != nil {
-		logger.Error("error writing error response", "err", err)
+		logger.Error(fmt.Sprintf("error writing error response: %s", err))
 	}
 }
