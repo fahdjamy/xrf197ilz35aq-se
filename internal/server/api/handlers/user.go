@@ -28,7 +28,7 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	createdUser, err := uh.processor.CreateUser(ctx, userReq)
+	createdUser, err := uh.processor.CreateUser(ctx, &userReq)
 	if err != nil {
 		response.WriteErrorResponse(err, w, uh.logger)
 		return
@@ -44,7 +44,7 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *userHandler) RegisterRoutes(serveMux *http.ServeMux) {
-	serveMux.HandleFunc("POST /user", uh.createUser)
+	serveMux.HandleFunc("POST /api/v1/user", uh.createUser)
 }
 
 func NewUserReqHandler(logger slog.Logger, userProcessor processor.UserProcessor) RequestHandler {

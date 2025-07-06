@@ -3,65 +3,92 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/mail"
+	"regexp"
+	"xrf197ilz35aq/internal"
 )
 
 type UserRequest struct {
-	FirstName string          `json:"firstName"`
 	LastName  string          `json:"lastName"`
-	Email     string          `json:"email"`
-	Password  string          `json:"password"`
-	Anonymous bool            `json:"anonymous"`
 	Settings  *SettingRequest `json:"settings"`
+	FirstName string          `json:"firstName"`
+	Anonymous bool            `json:"anonymous"`
+	Email     string          `json:"email" validate:"required"`
+	Password  string          `json:"password" validate:"required,min=8"`
 }
 
 func (ur *UserRequest) Validate() error {
-	if ur.FirstName == "" {
-		return fmt.Errorf("first name is required")
-	}
-	if ur.LastName == "" {
-		return fmt.Errorf("last name is required")
-	}
-	if ur.Email == "" {
-		return fmt.Errorf("email is required")
-	}
-	if ur.Password == "" {
-		return fmt.Errorf("password is required")
-	}
-	return nil
-}
-
-func (ur *UserRequest) UnmarshalJSON(b []byte) error {
-	err := json.Unmarshal(b, &ur)
+	_, err := mail.ParseAddress(ur.Email)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid email address, Err :: '%s'", err.Error())
 	}
-	err = ur.Validate()
-	if err != nil {
+	lastNameLen := len(ur.LastName)
+	if lastNameLen != 0 && lastNameLen < 3 {
+		return fmt.Errorf("if last name is specified, it should be at least 3 characters long")
+	}
+	firstNameLen := len(ur.FirstName)
+	if firstNameLen != 0 && firstNameLen < 3 {
+		return fmt.Errorf("if first name is specified, it should be at least 3 characters long")
+	}
+	if (ur.FirstName != "" && ur.LastName == "") || (ur.FirstName == "" && ur.LastName != "") {
+		return fmt.Errorf("if FirstName or LastName is specified, then both fields should not be empty")
+	}
+	if err := ValidatePassword(ur.Password); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (ur *UserRequest) MarshalJSON() ([]byte, error) {
-	if ur == nil {
-		return nil, fmt.Errorf("UserRequest is nil")
-	}
-	err := ur.Validate()
-	if err != nil {
-		return nil, err
-	}
-	userObj := *ur
-	if userObj.Email == "" {
-		return nil, fmt.Errorf("invalid user email")
-	}
-	if userObj.Password == "" {
-		return nil, fmt.Errorf("invalid user password")
+func ValidatePassword(password string) error {
+	// Minimum length of 8 characters
+	// At least 1 uppercase letter and 1 lowercase letter
+	// At least one digit
+	if len(password) < 8 {
+		return fmt.Errorf("password must be at least 8 characters long")
 	}
 
+	if !regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]`).MatchString(password) {
+		return fmt.Errorf("password must contain at least one special character")
+	}
+
+	if !regexp.MustCompile(`[A-Z]`).MatchString(password) || !regexp.MustCompile(`[a-z]`).MatchString(password) {
+		return fmt.Errorf("password must contain at least one lowercase and an uppercase letter")
+	}
+
+	if !regexp.MustCompile(`[0-9]`).MatchString(password) {
+		return fmt.Errorf("password must contain at least one digit")
+	}
+
+	return nil
+}
+
+func (ur *UserRequest) UnmarshalJSON(bytes []byte) error {
+	clientErr := &internal.ExternalError{
+		Message: "Invalid JSON request",
+		Code:    http.StatusBadRequest,
+	}
 	type Alias UserRequest
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(ur),
+	}
+	if err := json.Unmarshal(bytes, &aux); err != nil {
+		clientErr.Message = "Failed to unmarshal JSON"
+		return clientErr
+	}
 
-	auxUser := (Alias)(userObj)
-	return json.Marshal(auxUser)
+	if aux.Email == "" {
+		clientErr.Message = "Invalid email address"
+		return clientErr
+	}
+	if aux.Password == "" {
+		clientErr.Message = "Invalid password"
+		return clientErr
+	}
+
+	return nil
 }
 
 func (ur *UserRequest) String() string {

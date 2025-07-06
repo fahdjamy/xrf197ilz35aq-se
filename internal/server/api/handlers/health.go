@@ -3,6 +3,7 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
+	"xrf197ilz35aq/internal/server/api/response"
 )
 
 type healthRoutes struct {
@@ -10,12 +11,15 @@ type healthRoutes struct {
 }
 
 func (hr *healthRoutes) healthCheck(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte("OK"))
-	if err != nil {
-		hr.logger.Error("event=healthCheckFailure", "message", "Setting header failed", "err", err.Error())
-		return
+	data := response.DataResponse{
+		Code: http.StatusOK,
+		Data: struct {
+			Health bool `json:"health"`
+		}{
+			Health: true,
+		},
 	}
+	response.WriteResponse(data, w, hr.logger)
 }
 
 func (hr *healthRoutes) RegisterRoutes(serveMux *http.ServeMux) {

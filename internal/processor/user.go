@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/client"
 	"xrf197ilz35aq/internal/model"
 )
@@ -14,10 +15,10 @@ type UserProcessor struct {
 	apiClient client.ApiClient
 }
 
-func (up *UserProcessor) CreateUser(ctx context.Context, userReq model.UserRequest) (*model.UserResponse, error) {
+func (up *UserProcessor) CreateUser(ctx context.Context, userReq *model.UserRequest) (*model.UserResponse, error) {
 	// 1. Validate user request
 	if err := userReq.Validate(); err != nil {
-		return nil, &ExternalError{
+		return nil, &internal.ExternalError{
 			Message: err.Error(),
 			Code:    http.StatusBadRequest,
 		}
