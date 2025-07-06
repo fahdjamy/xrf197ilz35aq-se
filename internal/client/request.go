@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"xrf197ilz35aq/internal"
 )
 
 var statusCodeMap = map[int]int{
@@ -32,6 +33,7 @@ type ApiClient struct {
 	logger         slog.Logger
 	httpClient     *http.Client
 	defaultHeaders map[string]string
+	appConfig      internal.AppConfig
 }
 
 type Option func(*ApiClient)
@@ -45,10 +47,10 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
+			c.logger.Error("failed to marshal request body", "error", err)
 			return &APIError{
-				Code:    http.StatusInternalServerError,
-				Message: "failed to marshal request body",
-				Err:     fmt.Errorf("failed to marshal request body: %w", err),
+				Code: http.StatusInternalServerError,
+				Err:  fmt.Errorf("failed to marshal request body: %w", err),
 			}
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
@@ -57,10 +59,10 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	// 3. Create the HTTP request with context
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBody)
 	if err != nil {
+		c.logger.Error("failed to create request", "error", err)
 		return &APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "failed to marshal request body",
-			Err:     fmt.Errorf("failed to create request: %w", err),
+			Code: http.StatusInternalServerError,
+			Err:  fmt.Errorf("failed to create request: %w", err),
 		}
 	}
 
@@ -77,16 +79,18 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	}
 	// Always set Content-Type to application/json body is not nil
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(internal.ContentType, internal.ApplicationJson)
 	}
+	// Always, set service to service token
+	req.Header.Set(internal.SrvToSrvToken, generateSrvToSrvToken())
 
 	// 5. Execute the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("failed to execute request", "error", err)
 		return &APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "failed to marshal request body",
-			Err:     fmt.Errorf("failed to execute request: %w", err),
+			Code: http.StatusInternalServerError,
+			Err:  fmt.Errorf("failed to execute request: %w", err),
 		}
 	}
 	defer resp.Body.Close()
@@ -96,30 +100,27 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 		responseBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			errMsg := "failed to read client response body"
-			c.logger.Error("Internal server error", "code", http.StatusInternalServerError, "error", errMsg)
+			c.logger.Error("failed to read client response body", "error", errMsg)
 			return &APIError{
-				Err:     err,
-				Message: "Internal server error",
-				Code:    http.StatusInternalServerError,
+				Err:  err,
+				Code: http.StatusInternalServerError,
 			}
 		}
-		c.logger.Error("client returned error", "code", statusCode, "error", string(responseBytes))
+		c.logger.Error("API client returned error", "code", statusCode, "error", string(responseBytes))
 		return &APIError{
-			Message: "client error response",
-			Err:     errors.New(string(responseBytes)),
-			Code:    clientErrorStatusCodeMapper(statusCode),
+			Err:  errors.New(string(responseBytes)),
+			Code: clientErrorStatusCodeMapper(statusCode),
 		}
 	}
 
 	// 7. Decode the successful response body into the provided struct 'into'
 	if into != nil {
 		if err := json.NewDecoder(resp.Body).Decode(into); err != nil {
-			errMsg := "failed to decode response body"
-			c.logger.Error("Internal server error", "code", http.StatusInternalServerError, "error", errMsg)
+			errMsg := "failed to decode client response body"
+			c.logger.Error(errMsg, "error", errMsg)
 			return &APIError{
-				Err:     err,
-				Message: "Internal server error",
-				Code:    http.StatusInternalServerError,
+				Err:  err,
+				Code: http.StatusInternalServerError,
 			}
 		}
 	}
@@ -137,7 +138,12 @@ func (c *ApiClient) Get(ctx context.Context, path string, customHeaders map[stri
 // Post performs a POST request.
 // 'Body' is the request payload, which will be marshaled to JSON.
 func (c *ApiClient) Post(ctx context.Context, path string, body interface{}, customHeaders map[string]string, into interface{}) error {
-	return c.do(ctx, http.MethodPost, path, body, customHeaders, into)
+	extraHeaders := make(map[string]string)
+	for k, v := range customHeaders {
+		extraHeaders[k] = v
+	}
+	extraHeaders["Accept"] = "application/json"
+	return c.do(ctx, http.MethodPost, path, body, extraHeaders, into)
 }
 
 // Put performs a PUT request.
@@ -150,10 +156,11 @@ func (c *ApiClient) Delete(ctx context.Context, path string, customHeaders map[s
 	return c.do(ctx, http.MethodDelete, path, nil, customHeaders, into)
 }
 
-func NewApiClient(baseURL string, logger slog.Logger, options ...Option) *ApiClient {
+func NewApiClient(baseURL string, logger slog.Logger, appConfig internal.AppConfig, options ...Option) *ApiClient {
 	apiClient := &ApiClient{
 		logger:         logger,
 		baseURL:        baseURL,
+		appConfig:      appConfig,
 		httpClient:     http.DefaultClient,
 		defaultHeaders: make(map[string]string),
 	}
@@ -192,4 +199,8 @@ func clientErrorStatusCodeMapper(statusCode int) int {
 		return http.StatusBadGateway
 	}
 	return statusCodeMap[statusCode]
+}
+
+func generateSrvToSrvToken() string {
+	return "srv-to-srv-token/test"
 }

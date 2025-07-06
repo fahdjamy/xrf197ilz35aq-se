@@ -5,11 +5,11 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/client"
 	"xrf197ilz35aq/internal/processor"
@@ -31,9 +31,14 @@ func main() {
 	/// Create API Client
 	defaultHeaders := make(map[string]string)
 	defaultHeaders["Content-Type"] = "application/json"
+	parsedUrl, err := url.Parse(config.Service.Organization.BaseURL)
+	if err != nil {
+		logger.Error("failed to parse organization base url", "err", err)
+	}
 	apiClient := client.NewApiClient(
-		config.Service.Organization.BaseURL,
+		parsedUrl.String(),
 		*logger,
+		config.Application,
 		client.WithTimeout(config.Service.Organization.APIClientTimeout),
 		client.WithDefaultHeader(defaultHeaders))
 
@@ -61,7 +66,7 @@ func main() {
 	<-ch
 	logger.Info("received shutdown signal, starting graceful shutdown")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Application.GracefulTimeout)
 	defer cancel()
 
 	// Attempt to gracefully shut down the server.

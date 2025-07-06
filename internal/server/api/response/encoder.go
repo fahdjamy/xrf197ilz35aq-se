@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"xrf197ilz35aq/internal"
-	"xrf197ilz35aq/internal/processor"
+	"xrf197ilz35aq/internal/client"
 )
 
 type DataResponse struct {
@@ -32,7 +32,7 @@ func WriteResponse(data DataResponse, w http.ResponseWriter, logger slog.Logger)
 }
 
 func WritePaginatedResponse(data DataResponse, pag *pagination, w http.ResponseWriter, logger slog.Logger) {
-	w.Header().Set(internal.ContentType, internal.ApplicationJson)
+	w.Header().Set(internal.ContentType, internal.ApplicationJson+"; charset=utf-8")
 	w.WriteHeader(data.Code)
 
 	if pag == nil {
@@ -55,7 +55,8 @@ func WriteErrorResponse(errObj error, w http.ResponseWriter, logger slog.Logger)
 	msg := "Something went wrong"
 	statusCode := http.StatusInternalServerError
 
-	var externalError *processor.ExternalError
+	var externalError *internal.ExternalError
+	var apiClientError *client.APIError
 
 	switch {
 	case errors.As(errObj, &externalError):
@@ -65,9 +66,15 @@ func WriteErrorResponse(errObj error, w http.ResponseWriter, logger slog.Logger)
 			statusCode = http.StatusInternalServerError
 		}
 		msg = externalError.Message
+	case errors.As(errObj, &apiClientError):
+		if apiClientError.Message != "" {
+			msg = apiClientError.Message
+		} else {
+			msg = "internal server error"
+		}
+		statusCode = apiClientError.Code
 	default:
-		statusCode = http.StatusInternalServerError
-		msg = "Something went wrong"
+		// default values are set while setting the variables
 	}
 
 	w.Header().Set(internal.ContentType, internal.ApplicationJson)

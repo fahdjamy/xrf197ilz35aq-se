@@ -9,7 +9,6 @@ import (
 	"strings"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/client"
-	"xrf197ilz35aq/internal/processor"
 )
 
 type Err struct {
@@ -28,7 +27,7 @@ func DecodeJSONBody[T any](r *http.Request, dst *T) error {
 		mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
 		if mediaType != internal.ApplicationJson {
 			msg := fmt.Sprintf("Content-Type header is not %s", internal.ApplicationJson)
-			return fmt.Errorf(msg)
+			return &Err{Status: http.StatusUnsupportedMediaType, Msg: msg}
 		}
 	}
 
@@ -39,6 +38,7 @@ func DecodeJSONBody[T any](r *http.Request, dst *T) error {
 	if err != nil {
 		return parseBodyError(err)
 	}
+
 	return nil
 }
 
@@ -46,7 +46,7 @@ func parseBodyError(err error) *Err {
 	var syntaxError *json.SyntaxError
 	var apiClientError *client.APIError
 	var maxBytesError *http.MaxBytesError
-	var externalErr *processor.ExternalError
+	var externalErr *internal.ExternalError
 	var unmarshalTypeError *json.UnmarshalTypeError
 	var invalidUnmarshalError *json.InvalidUnmarshalError
 
