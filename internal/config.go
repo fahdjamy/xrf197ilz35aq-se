@@ -12,13 +12,23 @@ type LogConfig struct {
 	OutputFile string `yaml:"outputFile"`
 }
 
+type OrgConfig struct {
+	BaseURL          string        `yaml:"baseURL"`
+	APIClientTimeout time.Duration `yaml:"apiClientTimeout"`
+}
+
+type ServiceConfig struct {
+	Organization OrgConfig `yaml:"organization"`
+}
+
 type AppConfig struct {
 	Port int `yaml:"port"`
 
-	IdleTimeout     time.Duration `yaml:"idleTimeout"`
-	ReadTimeout     time.Duration `yaml:"readTimeout"`
-	WriteTimeout    time.Duration `yaml:"writeTimeout"`
-	GracefulTimeout time.Duration `yaml:"gracefulTimeout"`
+	IdleTimeout          time.Duration `yaml:"idleTimeout"`
+	ReadTimeout          time.Duration `yaml:"readTimeout"`
+	WriteTimeout         time.Duration `yaml:"writeTimeout"`
+	GracefulTimeout      time.Duration `yaml:"gracefulTimeout"`
+	DefaultClientTimeout time.Duration `yaml:"defaultClientTimeout"`
 }
 
 type RedisConfig struct {
@@ -35,9 +45,10 @@ type RedisConfig struct {
 }
 
 type Config struct {
-	Log         LogConfig   `yml:"log"`
-	Redis       RedisConfig `yml:"redis"`
-	Application AppConfig   `yml:"application"`
+	Log         LogConfig     `yml:"log"`
+	Redis       RedisConfig   `yml:"redis"`
+	Service     ServiceConfig `yml:"service"`
+	Application AppConfig     `yml:"application"`
 }
 
 var (

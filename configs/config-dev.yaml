@@ -21,3 +21,9 @@ application:
   idleTimeout: 30s
   writeTimeout: 10s
   gracefulTimeout: 15s
+  apiClientTimeout: 20s
+
+service:
+  organization:
+    apiClientTimeout: 20s
+    baseURL: "127.0.0.1:8009/api/v1"
