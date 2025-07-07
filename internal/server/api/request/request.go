@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 	"xrf197ilz35aq/internal"
-	"xrf197ilz35aq/internal/client"
 )
 
 type Err struct {
@@ -44,32 +43,11 @@ func DecodeJSONBody[T any](r *http.Request, dst *T) error {
 
 func parseBodyError(err error) *Err {
 	var syntaxError *json.SyntaxError
-	var apiClientError *client.APIError
 	var maxBytesError *http.MaxBytesError
-	var externalErr *internal.ExternalError
 	var unmarshalTypeError *json.UnmarshalTypeError
 	var invalidUnmarshalError *json.InvalidUnmarshalError
 
 	switch {
-	// API client error
-	case errors.As(err, &apiClientError):
-		code := apiClientError.Code
-		if code <= 200 || code > 510 {
-			code = http.StatusInternalServerError
-		}
-		return &Err{
-			Err:    err,
-			Status: code,
-			Msg:    apiClientError.Message,
-		}
-
-	// External errors are errors due to the client
-	case errors.As(err, &externalErr):
-		return &Err{
-			Status: externalErr.Code,
-			Msg:    externalErr.Message,
-		}
-
 	// Syntax errors in the JSON
 	case errors.As(err, &syntaxError):
 		msg := fmt.Sprintf("Request contains badly-formed JSON (at position %d)", syntaxError.Offset)
@@ -83,7 +61,7 @@ func parseBodyError(err error) *Err {
 
 	// Catching error types like trying to assign a string in the
 	// JSON request body to an int field.
-	// interpolate the relevant field name and position into the error message
+	// Interpolate the relevant field name and position into the error message
 	case errors.Is(err, unmarshalTypeError):
 		msg := fmt.Sprintf("Request contains an invalid value for the %q field (at position %d)", unmarshalTypeError.Field, unmarshalTypeError.Offset)
 		return &Err{Status: http.StatusBadRequest, Msg: msg}
