@@ -42,13 +42,10 @@ func (lh *LoggerHandler) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestId := GenerateRequestId()
 		start := time.Now()
-		lh.logger.With("requestId", requestId)
+		loggerWithReqId := lh.logger.With("requestId", requestId)
 
-		lh.logger.Info(fmt.Sprintf("event=request :: method=%s :: url=%s :: remoteAddr=%s :: userAgent=%s",
-			r.Method,
-			r.URL.Path,
-			r.RemoteAddr,
-			r.UserAgent()))
+		path := r.URL.Path
+		loggerWithReqId.Info("event=incomingRequest", "method", r.Method, "url", path, "remoteAddr", r.RemoteAddr)
 
 		// Wrap the response writer to capture the status code.
 		wrappedWriter := &responseWriter{
@@ -61,19 +58,14 @@ func (lh *LoggerHandler) Handler(next http.Handler) http.Handler {
 		next.ServeHTTP(wrappedWriter, r)
 
 		// Stop the timer.
-		duration := time.Since(start)
+		timeTaken := time.Since(start)
+		status := wrappedWriter.status
 
-		if wrappedWriter.status >= 400 {
-			lh.logger.Error(fmt.Sprintf("event=response :: success=false :: url=%s :: status=%d :: duration=%dms error=%s",
-				r.URL.Path,
-				wrappedWriter.status,
-				int(duration.Milliseconds()),
-				wrappedWriter.body.String()))
+		if status >= 400 {
+			errBody := wrappedWriter.body.String()
+			loggerWithReqId.Error("event=response", "url", path, "timeTaken", timeTaken, "error", errBody)
 		} else {
-			lh.logger.Info(fmt.Sprintf("event=response :: success=true :: url=%s :: status=%d :: duration=%dms",
-				r.URL.Path,
-				wrappedWriter.status,
-				int(duration.Milliseconds())))
+			loggerWithReqId.Info("event=response", "url", path, "status")
 		}
 	})
 }
