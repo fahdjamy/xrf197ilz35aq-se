@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,16 +15,6 @@ import (
 var statusCodeMap = map[int]int{
 	http.StatusInternalServerError: http.StatusBadGateway,
 	http.StatusBadGateway:          http.StatusBadGateway,
-}
-
-type APIError struct {
-	Message string `json:"message"`
-	Code    int    `json:"code"`
-	Err     error  `json:"error"`
-}
-
-func (aErr *APIError) Error() string {
-	return fmt.Sprintf("API error %d: %s", aErr.Code, aErr.Message)
 }
 
 type ApiClient struct {
@@ -48,10 +37,7 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
 			c.logger.Error("failed to marshal request body", "error", err)
-			return &APIError{
-				Code: http.StatusInternalServerError,
-				Err:  fmt.Errorf("failed to marshal request body: %w", err),
-			}
+			return &internal.ServerError{Err: fmt.Errorf("failed to marshal request body: %w", err)}
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
@@ -60,9 +46,8 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBody)
 	if err != nil {
 		c.logger.Error("failed to create request", "error", err)
-		return &APIError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Errorf("failed to create request: %w", err),
+		return &internal.ServerError{
+			Err: fmt.Errorf("failed to create request: %w", err),
 		}
 	}
 
@@ -88,9 +73,8 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		c.logger.Error("failed to execute request", "error", err)
-		return &APIError{
-			Code: http.StatusInternalServerError,
-			Err:  fmt.Errorf("failed to execute request: %w", err),
+		return &internal.ServerError{
+			Err: fmt.Errorf("failed to execute request: %w", err),
 		}
 	}
 	defer resp.Body.Close()
@@ -101,16 +85,17 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 		if err != nil {
 			errMsg := "failed to read client response body"
 			c.logger.Error("failed to read client response body", "error", errMsg)
-			return &APIError{
-				Err:  err,
-				Code: http.StatusInternalServerError,
-			}
+			return &internal.ServerError{Err: fmt.Errorf("failed to read client response body: %w", err)}
+		}
+		// decode api client error
+		var apiClientError internal.APIClientError
+		if err := json.NewDecoder(bytes.NewReader(responseBytes)).Decode(&apiClientError); err != nil {
+			errMsg := "failed to decode client response body"
+			c.logger.Error(errMsg, "error", errMsg, "err", err)
+			return &internal.ServerError{Err: fmt.Errorf("failed to decode client response body: %w", err)}
 		}
 		c.logger.Error("API client returned error", "code", statusCode, "error", string(responseBytes))
-		return &APIError{
-			Err:  errors.New(string(responseBytes)),
-			Code: clientErrorStatusCodeMapper(statusCode),
-		}
+		return &apiClientError
 	}
 
 	// 7. Decode the successful response body into the provided struct 'into'
@@ -118,11 +103,9 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 		if err := json.NewDecoder(resp.Body).Decode(into); err != nil {
 			errMsg := "failed to decode client response body"
 			c.logger.Error(errMsg, "error", errMsg)
-			return &APIError{
-				Err:  err,
-				Code: http.StatusInternalServerError,
-			}
+			return &internal.ServerError{Err: fmt.Errorf("failed to decode client response body: %w", err)}
 		}
+		c.logger.Info("API client returned successfully", "code", statusCode, "body", into)
 	}
 	return nil
 }
@@ -188,17 +171,6 @@ func WithDefaultHeader(defaultHeaders map[string]string) Option {
 			}
 		}
 	}
-}
-
-func clientErrorStatusCodeMapper(statusCode int) int {
-	// All 400x to <500x error codes should be mapped as server errors
-	if statusCode >= 400 && statusCode < 500 {
-		return http.StatusInternalServerError
-	}
-	if statusCode < 300 {
-		return http.StatusBadGateway
-	}
-	return statusCodeMap[statusCode]
 }
 
 func generateSrvToSrvToken() string {
