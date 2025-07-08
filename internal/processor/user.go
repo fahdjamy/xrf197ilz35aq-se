@@ -25,7 +25,7 @@ func (up *UserProcessor) CreateUser(ctx context.Context, userReq *model.UserRequ
 	}
 
 	// 2. Make request to create user
-	userResp := &model.UserResponse{}
+	var userResp model.UserResponse
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -34,7 +34,7 @@ func (up *UserProcessor) CreateUser(ctx context.Context, userReq *model.UserRequ
 		return nil, err
 	}
 
-	return userResp, nil
+	return &userResp, nil
 }
 
 func NewUserProcessor(logger slog.Logger, apiClient client.ApiClient) *UserProcessor {

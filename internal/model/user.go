@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/mail"
 	"regexp"
+	"time"
 	"xrf197ilz35aq/internal"
 )
 
@@ -102,6 +103,30 @@ type SettingRequest struct {
 }
 
 type UserResponse struct {
-	UserId   string         `json:"userId"`
-	Settings SettingRequest `json:"settings"`
+	UserId    string          `json:"userId"`
+	FirstName string          `json:"firstName,omitempty"`
+	LastName  string          `json:"lastName,omitempty"`
+	Anonymous bool            `json:"anonymous"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt time.Time       `json:"updatedAt"`
+	Settings  SettingResponse `json:"settings,omitempty"`
+}
+
+type SettingResponse struct {
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	EncryptionKey string    `json:"encryptionKey"`
+	RotateKey     bool      `json:"rotateKey"`
+}
+
+func (s *SettingResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		CreatedAt time.Time `json:"createdAt"`
+		UpdatedAt time.Time `json:"updatedAt"`
+		RotateKey bool      `json:"rotateKey"`
+	}{
+		CreatedAt: s.CreatedAt,
+		UpdatedAt: s.UpdatedAt,
+		RotateKey: s.RotateKey,
+	})
 }
