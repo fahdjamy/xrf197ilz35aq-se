@@ -35,13 +35,13 @@ func DecodeJSONBody[T any](r *http.Request, dst *T) error {
 
 	err := decoder.Decode(dst)
 	if err != nil {
-		return parseBodyError(err)
+		return parseError(err)
 	}
 
 	return nil
 }
 
-func parseBodyError(err error) *Err {
+func parseError(err error) *Err {
 	var syntaxError *json.SyntaxError
 	var maxBytesError *http.MaxBytesError
 	var unmarshalTypeError *json.UnmarshalTypeError

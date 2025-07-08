@@ -17,6 +17,10 @@ type userHandler struct {
 }
 
 func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	defer func() {
+		uh.logger.Info("createUser latency", slog.String("method", "createUser"), "timeTaken", time.Since(startTime))
+	}()
 	var userReq model.UserRequest
 
 	err := request.DecodeJSONBody(r, &userReq)

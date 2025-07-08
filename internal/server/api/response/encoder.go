@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"xrf197ilz35aq/internal"
-	"xrf197ilz35aq/internal/client"
 )
 
 type DataResponse struct {
@@ -56,7 +55,8 @@ func WriteErrorResponse(errObj error, w http.ResponseWriter, logger slog.Logger)
 	statusCode := http.StatusInternalServerError
 
 	var externalError *internal.ExternalError
-	var apiClientError *client.APIError
+	var apiClientError *internal.APIClientError
+	var serverError *internal.ServerError
 
 	switch {
 	case errors.As(errObj, &externalError):
@@ -66,13 +66,27 @@ func WriteErrorResponse(errObj error, w http.ResponseWriter, logger slog.Logger)
 			statusCode = http.StatusInternalServerError
 		}
 		msg = externalError.Message
+	case errors.As(errObj, &serverError):
+		if serverError.Message != "" {
+			msg = serverError.Message
+		} else {
+			msg = "internal server error"
+		}
 	case errors.As(errObj, &apiClientError):
 		if apiClientError.Message != "" {
 			msg = apiClientError.Message
 		} else {
 			msg = "internal server error"
 		}
-		statusCode = apiClientError.Code
+
+		// set status code
+		if apiClientError.Code >= 500 {
+			statusCode = http.StatusBadGateway
+		} else if apiClientError.Code > 400 {
+			statusCode = http.StatusInternalServerError
+		} else {
+			statusCode = apiClientError.Code
+		}
 	default:
 		// default values are set while setting the variables
 	}
