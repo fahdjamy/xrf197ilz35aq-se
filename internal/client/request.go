@@ -76,35 +76,19 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 
 	statusCode := resp.StatusCode
 	if statusCode < 200 || statusCode >= 400 {
-		responseBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			errMsg := "failed to read client response body"
-			c.logger.Error("failed to read client response body", "error", errMsg)
-			return &internal.ServerError{Err: fmt.Errorf("failed to read client response body: %w", err)}
-		}
-		// decode api client error
 		var apiClientError internal.APIClientError
-		if err := json.NewDecoder(bytes.NewReader(responseBytes)).Decode(&apiClientError); err != nil {
-			errMsg := "failed to decode client response body"
-			c.logger.Error(errMsg, "error", errMsg, "err", err)
-			return &internal.ServerError{Err: fmt.Errorf("failed to decode client response body: %w", err)}
+		if err := c.parseClientResponse(resp.Body, &apiClientError); err != nil {
+			c.logger.Error("failed to parse client response body", "error", err)
+			return err
 		}
-		c.logger.Error("API client returned error", "code", statusCode, "error", string(responseBytes))
 		return &apiClientError
 	}
 
 	// 7. Decode the successful response body into the provided struct 'into'
 	if into != nil {
-		responseBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			errMsg := "failed to read client response body"
-			c.logger.Error("failed to read client response body", "error", errMsg)
-			return &internal.ServerError{Err: fmt.Errorf("failed to read client response body: %w", err)}
-		}
-		if err := json.NewDecoder(bytes.NewReader(responseBytes)).Decode(into); err != nil {
-			errMsg := "failed to decode client response body"
-			c.logger.Error(errMsg, "error", errMsg)
-			return &internal.ServerError{Err: fmt.Errorf("failed to decode client response body: %w", err)}
+		if err := c.parseClientResponse(resp.Body, into); err != nil {
+			c.logger.Error("failed to parse client response body", "error", err)
+			return err
 		}
 		c.logger.Info("API client returned successfully", "code", statusCode, "body", into)
 	}
@@ -138,6 +122,19 @@ func (c *ApiClient) Put(ctx context.Context, path string, body interface{}, cust
 // Delete performs a DELETE request.
 func (c *ApiClient) Delete(ctx context.Context, path string, customHeaders map[string]string, into interface{}) error {
 	return c.do(ctx, http.MethodDelete, path, nil, customHeaders, into)
+}
+
+func (c *ApiClient) parseClientResponse(body io.Reader, into interface{}) error {
+	responseBytes, err := io.ReadAll(body)
+	if err != nil {
+		return &internal.ServerError{Err: fmt.Errorf("error reading client respnse body: %w", err)}
+	}
+	if err := json.NewDecoder(bytes.NewReader(responseBytes)).Decode(into); err != nil {
+		return &internal.ServerError{Err: fmt.Errorf("error UnMarshalling/decoding client response body: %w", err)}
+	}
+
+	c.logger.Error("API client returned response body", "body", string(responseBytes))
+	return nil
 }
 
 func NewApiClient(baseURL string, logger slog.Logger, appConfig internal.AppConfig, options ...Option) *ApiClient {
