@@ -12,11 +12,6 @@ import (
 	"xrf197ilz35aq/internal"
 )
 
-var statusCodeMap = map[int]int{
-	http.StatusInternalServerError: http.StatusBadGateway,
-	http.StatusBadGateway:          http.StatusBadGateway,
-}
-
 type ApiClient struct {
 	baseURL        string
 	logger         slog.Logger
