@@ -95,7 +95,13 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 
 	// 7. Decode the successful response body into the provided struct 'into'
 	if into != nil {
-		if err := json.NewDecoder(resp.Body).Decode(into); err != nil {
+		responseBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			errMsg := "failed to read client response body"
+			c.logger.Error("failed to read client response body", "error", errMsg)
+			return &internal.ServerError{Err: fmt.Errorf("failed to read client response body: %w", err)}
+		}
+		if err := json.NewDecoder(bytes.NewReader(responseBytes)).Decode(into); err != nil {
 			errMsg := "failed to decode client response body"
 			c.logger.Error(errMsg, "error", errMsg)
 			return &internal.ServerError{Err: fmt.Errorf("failed to decode client response body: %w", err)}

@@ -10,6 +10,11 @@ import (
 	"xrf197ilz35aq/internal/model"
 )
 
+type UserClientResponse struct {
+	Code int                `json:"code"`
+	Data model.UserResponse `json:"data"`
+}
+
 type UserProcessor struct {
 	log       slog.Logger
 	apiClient client.ApiClient
@@ -25,16 +30,16 @@ func (up *UserProcessor) CreateUser(ctx context.Context, userReq *model.UserRequ
 	}
 
 	// 2. Make request to create user
-	var userResp model.UserResponse
+	var clientResponse UserClientResponse
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	err := up.apiClient.Post(timeoutCtx, "/user", userReq, nil, &userResp)
+	err := up.apiClient.Post(timeoutCtx, "/user", userReq, nil, &clientResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	return &userResp, nil
+	return &clientResponse.Data, nil
 }
 
 func NewUserProcessor(logger slog.Logger, apiClient client.ApiClient) *UserProcessor {
