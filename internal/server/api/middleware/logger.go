@@ -2,11 +2,13 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
+	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/random"
 )
 
@@ -52,10 +54,13 @@ func (lh *LoggerHandler) Handler(next http.Handler) http.Handler {
 			ResponseWriter: w,
 			status:         http.StatusOK,
 		}
-		wrappedWriter.Header().Set("Request-Trace-Id", requestId)
+		wrappedWriter.Header().Set("req-trace-id", requestId)
+
+		// 4. Create a new context with our request-scoped logger.
+		ctx := context.WithValue(r.Context(), internal.LoggerContextKey, loggerWithReqId)
 
 		// Call the next handler.
-		next.ServeHTTP(wrappedWriter, r)
+		next.ServeHTTP(wrappedWriter, r.WithContext(ctx))
 
 		// Stop the timer.
 		timeTaken := time.Since(start)

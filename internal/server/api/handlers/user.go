@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server/api/request"
@@ -12,29 +13,30 @@ import (
 )
 
 type userHandler struct {
-	logger    slog.Logger
-	processor processor.UserProcessor
+	defaultLogger slog.Logger
+	processor     processor.UserProcessor
 }
 
 func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
+	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
 	defer func() {
-		uh.logger.Info("createUser latency", slog.String("method", "createUser"), "timeTaken", time.Since(startTime))
+		logger.Info("createUser latency", slog.String("method", "createUser"), "timeTaken", time.Since(startTime))
 	}()
 	var userReq model.UserRequest
 
 	err := request.DecodeJSONBody(r, &userReq)
 	if err != nil {
-		response.WriteErrorResponse(err, w, uh.logger)
+		response.WriteErrorResponse(err, w, *logger)
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	createdUser, err := uh.processor.CreateUser(ctx, &userReq)
+	createdUser, err := uh.processor.CreateUser(ctx, *logger, &userReq)
 	if err != nil {
-		response.WriteErrorResponse(err, w, uh.logger)
+		response.WriteErrorResponse(err, w, *logger)
 		return
 	}
 
@@ -44,7 +46,7 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		Code: http.StatusCreated,
 		Data: createdUser,
 	}
-	response.WriteResponse(data, w, uh.logger)
+	response.WriteResponse(data, w, *logger)
 }
 
 func (uh *userHandler) RegisterRoutes(serveMux *http.ServeMux) {
@@ -52,5 +54,5 @@ func (uh *userHandler) RegisterRoutes(serveMux *http.ServeMux) {
 }
 
 func NewUserReqHandler(logger slog.Logger, userProcessor processor.UserProcessor) RequestHandler {
-	return &userHandler{logger: logger, processor: userProcessor}
+	return &userHandler{defaultLogger: logger, processor: userProcessor}
 }

@@ -35,15 +35,10 @@ func main() {
 	if err != nil {
 		logger.Error("failed to parse organization base url", "err", err)
 	}
-	apiClient := client.NewApiClient(
-		parsedUrl.String(),
-		*logger,
-		config.Application,
-		client.WithTimeout(config.Service.Organization.APIClientTimeout),
-		client.WithDefaultHeader(defaultHeaders))
+	apiClient := client.NewApiClient(parsedUrl.String(), config.Application, client.WithTimeout(config.Service.Organization.APIClientTimeout), client.WithDefaultHeader(defaultHeaders))
 
 	/// Create request processors
-	userProcessor := processor.NewUserProcessor(*logger, *apiClient)
+	userProcessor := processor.NewUserProcessor(*apiClient)
 	processors := processor.Processors{UserProcessor: *userProcessor}
 
 	server := api.CreateServer(*logger, config.Application, &processors)
