@@ -16,11 +16,10 @@ type UserClientResponse struct {
 }
 
 type UserProcessor struct {
-	log       slog.Logger
 	apiClient client.ApiClient
 }
 
-func (up *UserProcessor) CreateUser(ctx context.Context, userReq *model.UserRequest) (*model.UserResponse, error) {
+func (up *UserProcessor) CreateUser(ctx context.Context, log slog.Logger, userReq *model.UserRequest) (*model.UserResponse, error) {
 	// 1. Validate user request
 	if err := userReq.Validate(); err != nil {
 		return nil, &internal.ExternalError{
@@ -34,7 +33,7 @@ func (up *UserProcessor) CreateUser(ctx context.Context, userReq *model.UserRequ
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	err := up.apiClient.Post(timeoutCtx, "/user", userReq, nil, &clientResponse)
+	err := up.apiClient.Post(timeoutCtx, "/user", userReq, nil, &clientResponse, log)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +41,12 @@ func (up *UserProcessor) CreateUser(ctx context.Context, userReq *model.UserRequ
 	return &clientResponse.Data, nil
 }
 
-func NewUserProcessor(logger slog.Logger, apiClient client.ApiClient) *UserProcessor {
+func (up *UserProcessor) GetUserProfile(ctx context.Context, userId string) (*model.UserResponse, error) {
+	return nil, nil
+}
+
+func NewUserProcessor(apiClient client.ApiClient) *UserProcessor {
 	return &UserProcessor{
-		log:       logger,
 		apiClient: apiClient,
 	}
 }
