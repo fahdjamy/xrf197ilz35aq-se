@@ -75,6 +75,12 @@ func (lh *LoggerHandler) Handler(next http.Handler) http.Handler {
 	})
 }
 
+func NewLoggerHandler(logger *slog.Logger) *LoggerHandler {
+	return &LoggerHandler{
+		logger: logger,
+	}
+}
+
 func GenerateRequestId() string {
 	uniqueStr, err := random.TimeBasedString(time.Now().Unix(), 21)
 	if err != nil {

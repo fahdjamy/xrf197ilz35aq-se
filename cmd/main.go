@@ -41,7 +41,7 @@ func main() {
 	userProcessor := processor.NewUserProcessor(*apiClient)
 	processors := processor.Processors{UserProcessor: *userProcessor}
 
-	server := api.CreateServer(*logger, config.Application, &processors)
+	server := api.CreateServer(logger, config.Application, &processors)
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("serverStarted=false :: error starting api server", "error", err)

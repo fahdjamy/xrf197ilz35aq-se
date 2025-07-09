@@ -8,16 +8,17 @@ import (
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server/api/handlers"
+	"xrf197ilz35aq/internal/server/api/middleware"
 )
 
-func CreateServer(logger slog.Logger, appConfig internal.AppConfig, processors *processor.Processors) *http.Server {
+func CreateServer(logger *slog.Logger, appConfig internal.AppConfig, processors *processor.Processors) *http.Server {
 	serverMux := http.NewServeMux()
 
 	reqHandlers := make([]handlers.RequestHandler, 0)
 
 	// create request (routes) handlers
-	healthReqHandler := handlers.NewReqHealthHandlers(logger)
-	userReqHandler := handlers.NewUserReqHandler(logger, processors.UserProcessor)
+	healthReqHandler := handlers.NewReqHealthHandlers(*logger)
+	userReqHandler := handlers.NewUserReqHandler(*logger, processors.UserProcessor)
 
 	reqHandlers = append(reqHandlers, healthReqHandler)
 	reqHandlers = append(reqHandlers, userReqHandler)
@@ -26,8 +27,12 @@ func CreateServer(logger slog.Logger, appConfig internal.AppConfig, processors *
 		handler.RegisterRoutes(serverMux)
 	}
 
+	// middlewares
+	loggerMiddleware := middleware.NewLoggerHandler(logger)
+	wrappedServer := loggerMiddleware.Handler(serverMux)
+
 	return &http.Server{
-		Handler:      serverMux,
+		Handler:      wrappedServer,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 16 * time.Minute,
 		IdleTimeout:  16 * time.Minute,

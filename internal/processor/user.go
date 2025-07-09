@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -41,8 +42,14 @@ func (up *UserProcessor) CreateUser(ctx context.Context, log slog.Logger, userRe
 	return &clientResponse.Data, nil
 }
 
-func (up *UserProcessor) GetUserProfile(ctx context.Context, userId string) (*model.UserResponse, error) {
-	return nil, nil
+func (up *UserProcessor) GetUserProfile(ctx context.Context, userId string, log slog.Logger) (*model.UserResponse, error) {
+	var userResponse UserClientResponse
+
+	if err := up.apiClient.Get(ctx, fmt.Sprintf("/user/%s", userId), nil, userResponse, log); err != nil {
+		return nil, err
+	}
+
+	return &userResponse.Data, nil
 }
 
 func NewUserProcessor(apiClient client.ApiClient) *UserProcessor {
