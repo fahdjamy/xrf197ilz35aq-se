@@ -126,9 +126,11 @@ func (c *ApiClient) Delete(ctx context.Context, path string, customHeaders map[s
 func parseClientResponse(body io.Reader, into interface{}, log slog.Logger) error {
 	responseBytes, err := io.ReadAll(body)
 	if err != nil {
+		log.Error("failed to read response body", "error", err)
 		return &internal.ServerError{Err: fmt.Errorf("error reading client respnse body: %w", err)}
 	}
 	if err := json.NewDecoder(bytes.NewReader(responseBytes)).Decode(into); err != nil {
+		log.Error("failed to parse client response body", "error", err)
 		return &internal.ServerError{Err: fmt.Errorf("error UnMarshalling/decoding client response body: %w", err)}
 	}
 
