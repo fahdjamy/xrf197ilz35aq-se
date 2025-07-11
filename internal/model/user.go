@@ -130,3 +130,32 @@ func (s *SettingResponse) MarshalJSON() ([]byte, error) {
 		RotateKey: s.RotateKey,
 	})
 }
+
+type AuthRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=55"`
+}
+
+func (ar *AuthRequest) Validate() error {
+	_, err := mail.ParseAddress(ar.Email)
+	if err != nil {
+		return fmt.Errorf("invalid email/password")
+	}
+	if err := ValidatePassword(ar.Password); err != nil {
+		return fmt.Errorf("invalid email/password")
+	}
+	return nil
+}
+
+func (ar *AuthRequest) String() string {
+	isValid := false
+	_, err := mail.ParseAddress(ar.Email)
+	if err == nil {
+		isValid = true
+	}
+	return fmt.Sprintf("email=[REDACTED] :: isValid=%t", isValid)
+}
+
+type RevokeTokenRequest struct {
+	Token string `json:"token"`
+}
