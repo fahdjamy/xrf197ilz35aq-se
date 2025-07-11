@@ -159,3 +159,8 @@ func (ar *AuthRequest) String() string {
 type RevokeTokenRequest struct {
 	Token string `json:"token"`
 }
+
+type AuthResponse struct {
+	Token  string `json:"token"`
+	Expiry int64  `json:"expiry"`
+}

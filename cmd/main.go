@@ -39,7 +39,12 @@ func main() {
 
 	/// Create request processors
 	userProcessor := processor.NewUserProcessor(*apiClient)
-	processors := processor.Processors{UserProcessor: *userProcessor}
+	authProcessor := processor.NewAuthProcessor(*apiClient)
+
+	processors := processor.Processors{
+		UserProcessor: *userProcessor,
+		AuthProcessor: *authProcessor,
+	}
 
 	server := api.CreateServer(logger, config.Application, &processors)
 	go func() {
