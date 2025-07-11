@@ -34,13 +34,12 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
+	//// Call processor
 	createdUser, err := uh.processor.CreateUser(ctx, *logger, &userReq)
 	if err != nil {
 		response.WriteErrorResponse(err, w, *logger)
 		return
 	}
-
-	//// Call processor
 
 	data := response.DataResponse{
 		Code: http.StatusCreated,

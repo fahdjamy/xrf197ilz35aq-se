@@ -18,10 +18,12 @@ func CreateServer(logger *slog.Logger, appConfig internal.AppConfig, processors 
 
 	// create request (routes) handlers
 	healthReqHandler := handlers.NewReqHealthHandlers(*logger)
+	authReqHandler := handlers.NewAuthHandler(*logger, processors.AuthProcessor)
 	userReqHandler := handlers.NewUserReqHandler(*logger, processors.UserProcessor)
 
 	reqHandlers = append(reqHandlers, healthReqHandler)
 	reqHandlers = append(reqHandlers, userReqHandler)
+	reqHandlers = append(reqHandlers, authReqHandler)
 
 	for _, handler := range reqHandlers {
 		handler.RegisterRoutes(serverMux)

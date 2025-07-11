@@ -29,8 +29,7 @@ func (ap *AuthProcessor) AuthenticateUser(ctx context.Context, log slog.Logger, 
 
 	// 2. Make request to authenticate user
 	var response AuthAPIClientResponse
-	err := ap.apiClient.Post(ctx, "/api/v1/auth", authReq, nil, response, log)
-	if err != nil {
+	if err := ap.apiClient.Post(ctx, "/api/v1/auth", authReq, nil, response, log); err != nil {
 		return nil, err
 	}
 
