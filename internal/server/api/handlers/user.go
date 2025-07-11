@@ -21,7 +21,7 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
 	defer func() {
-		logger.Info("createUser latency", slog.String("method", "createUser"), "timeTaken", time.Since(startTime))
+		logger.Info("event=createUser latency", "latency", time.Since(startTime))
 	}()
 	var userReq model.UserRequest
 
@@ -52,7 +52,7 @@ func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
 	defer func() {
-		logger.Info("getUser latency", slog.String("method", "getUser"), "timeTaken", time.Since(startTime))
+		logger.Info("event=getUser latency", "latency", time.Since(startTime))
 	}()
 
 	userId, isValid := getAndValidateId(r, "userId")

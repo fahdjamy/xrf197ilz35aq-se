@@ -20,7 +20,7 @@ func (auth *AuthHandler) authenticateUser(w http.ResponseWriter, r *http.Request
 	startTime := time.Now()
 	logger := internal.LoggerFromContext(r.Context(), auth.defaultLogger)
 	defer func() {
-		logger.Info("event=authenticateUser, latency", "timeTaken", time.Since(startTime))
+		logger.Info("event=authenticateUser", "latency", time.Since(startTime))
 	}()
 
 	var req model.AuthRequest
