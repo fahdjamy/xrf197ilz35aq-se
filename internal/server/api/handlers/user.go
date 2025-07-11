@@ -49,10 +49,47 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	response.WriteResponse(data, w, *logger)
 }
 
+func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
+	defer func() {
+		logger.Info("getUser latency", slog.String("method", "getUser"), "timeTaken", time.Since(startTime))
+	}()
+
+	userId, isValid := getAndValidateId(r, "userId")
+	if !isValid {
+		externalError := internal.ExternalError{Message: "invalid user id", Code: http.StatusBadRequest}
+		response.WriteErrorResponse(&externalError, w, *logger)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	//// Call processor
+	createdUser, err := uh.processor.GetUserProfile(ctx, userId, *logger)
+	if err != nil {
+		response.WriteErrorResponse(err, w, *logger)
+		return
+	}
+
+	data := response.DataResponse{Code: http.StatusCreated, Data: createdUser}
+	response.WriteResponse(data, w, *logger)
+}
+
 func (uh *userHandler) RegisterRoutes(serveMux *http.ServeMux) {
 	serveMux.HandleFunc("POST /api/v1/user", uh.createUser)
+	serveMux.HandleFunc("GET /api/v1/user/{userId}", uh.getUser)
 }
 
 func NewUserReqHandler(logger slog.Logger, userProcessor processor.UserProcessor) RequestHandler {
 	return &userHandler{defaultLogger: logger, processor: userProcessor}
+}
+
+func getAndValidateId(req *http.Request, reqIdKey string) (string, bool) {
+	value := req.PathValue(reqIdKey)
+	if value == "" {
+		return "", false
+	}
+	return value, true
 }
