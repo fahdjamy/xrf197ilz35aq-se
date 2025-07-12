@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"time"
@@ -31,11 +30,8 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
 	//// Call processor
-	createdUser, err := uh.processor.CreateUser(ctx, *logger, &userReq)
+	createdUser, err := uh.processor.CreateUser(r.Context(), *logger, &userReq)
 	if err != nil {
 		response.WriteErrorResponse(err, w, *logger)
 		return
@@ -62,11 +58,10 @@ func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	authToken := r.Header.Get(internal.XrfAuthToken)
 
 	//// Call processor
-	createdUser, err := uh.processor.GetUserProfile(ctx, userId, *logger)
+	createdUser, err := uh.processor.GetUserProfile(r.Context(), *logger, userId, authToken)
 	if err != nil {
 		response.WriteErrorResponse(err, w, *logger)
 		return

@@ -42,11 +42,20 @@ func (up *UserProcessor) CreateUser(ctx context.Context, log slog.Logger, userRe
 	return &clientResponse.Data, nil
 }
 
-func (up *UserProcessor) GetUserProfile(ctx context.Context, userId string, log slog.Logger) (*model.UserResponse, error) {
+func (up *UserProcessor) GetUserProfile(ctx context.Context, log slog.Logger, userId, authToken string) (*model.UserResponse, error) {
 	var userResponse UserClientResponse
+	path := fmt.Sprintf("/user/%s", userId)
 
-	if err := up.apiClient.Get(ctx, fmt.Sprintf("/user/%s", userId), nil, userResponse, log); err != nil {
+	if err := up.apiClient.Get(ctx, path, internal.CreateUserAuthToken(authToken), userResponse, log); err != nil {
 		return nil, err
+	}
+
+	if userResponse.Data.UserId != userId {
+		log.Warn("user profile not found", "returnedResponse", userResponse.Data)
+		return nil, &internal.ExternalError{
+			Code:    http.StatusBadRequest,
+			Message: "user profile not found",
+		}
 	}
 
 	return &userResponse.Data, nil
