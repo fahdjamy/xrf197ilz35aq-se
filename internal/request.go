@@ -21,7 +21,7 @@ func LoggerFromContext(ctx context.Context, defaultLogger slog.Logger) *slog.Log
 	return &defaultLogger
 }
 
-func CreateUserAuthToken(token string) map[string]string {
+func CreateAuthTokenHeader(token string) map[string]string {
 	xrfAuthToken := "xrf-auth-token"
 	return map[string]string{
 		xrfAuthToken: token,

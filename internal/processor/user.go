@@ -46,7 +46,7 @@ func (up *UserProcessor) GetUserProfile(ctx context.Context, log slog.Logger, us
 	var userResponse UserClientResponse
 	path := fmt.Sprintf("/user/%s", userId)
 
-	if err := up.apiClient.Get(ctx, path, internal.CreateUserAuthToken(authToken), userResponse, log); err != nil {
+	if err := up.apiClient.Get(ctx, path, internal.CreateAuthTokenHeader(authToken), &userResponse, log); err != nil {
 		return nil, err
 	}
 

@@ -134,7 +134,6 @@ func parseClientResponse(body io.Reader, into interface{}, log slog.Logger) erro
 		return &internal.ServerError{Err: fmt.Errorf("error UnMarshalling/decoding client response body: %w", err)}
 	}
 
-	log.Error("API client returned response body", "body", string(responseBytes))
 	return nil
 }
 
