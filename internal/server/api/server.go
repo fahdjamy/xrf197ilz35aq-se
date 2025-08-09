@@ -31,7 +31,11 @@ func CreateServer(logger *slog.Logger, appConfig internal.AppConfig, processors 
 
 	// middlewares
 	loggerMiddleware := middleware.NewLoggerHandler(logger)
+	authMiddleware := middleware.NewAuthenticationMiddleware(*logger, processors.AuthProcessor)
+
+	// wrap middlewares around the server
 	wrappedServer := loggerMiddleware.Handler(serverMux)
+	wrappedServer = authMiddleware.Handler(serverMux)
 
 	return &http.Server{
 		Handler:      wrappedServer,
