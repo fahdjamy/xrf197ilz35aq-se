@@ -70,7 +70,7 @@ func (lh *LoggerHandler) Handler(next http.Handler) http.Handler {
 			errBody := wrappedWriter.body.String()
 			loggerWithReqId.Error("event=response", "url", path, "timeTaken", timeTaken, "error", errBody)
 		} else {
-			loggerWithReqId.Info("event=response", "url", path, "status")
+			loggerWithReqId.Info("event=response", "url", path, "status", status)
 		}
 	})
 }
