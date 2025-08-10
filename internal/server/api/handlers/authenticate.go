@@ -30,7 +30,7 @@ func (auth *AuthHandler) authenticateUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	authTokenData, err := auth.authProcessor.AuthenticateUser(r.Context(), *logger, req)
+	authTokenData, err := auth.authProcessor.GetAuthToken(r.Context(), *logger, req)
 	if err != nil {
 		response.WriteErrorResponse(err, w, *logger)
 		return

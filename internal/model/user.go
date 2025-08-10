@@ -136,6 +136,10 @@ type AuthRequest struct {
 	Password string `json:"password" validate:"required,min=8,max=55"`
 }
 
+type VerifyRevokeTokenReq struct {
+	Token string `json:"token" validate:"required"`
+}
+
 func (ar *AuthRequest) Validate() error {
 	_, err := mail.ParseAddress(ar.Email)
 	if err != nil {

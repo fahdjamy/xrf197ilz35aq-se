@@ -9,16 +9,20 @@ import (
 	"xrf197ilz35aq/internal/model"
 )
 
-type AuthAPIClientResponse struct {
-	Code int                `json:"code"`
-	Data model.AuthResponse `json:"data"`
+type apiClientResponse[T any] struct {
+	Code int `json:"code"`
+	Data T   `json:"data"`
+}
+
+type verifyTokenResponse struct {
+	UserId string `json:"userId"`
 }
 
 type AuthProcessor struct {
 	apiClient client.ApiClient
 }
 
-func (ap *AuthProcessor) AuthenticateUser(ctx context.Context, log slog.Logger, authReq model.AuthRequest) (*model.AuthResponse, error) {
+func (ap *AuthProcessor) GetAuthToken(ctx context.Context, log slog.Logger, authReq model.AuthRequest) (*model.AuthResponse, error) {
 	// 1. Validate authentication request
 	if err := authReq.Validate(); err != nil {
 		return nil, &internal.ExternalError{
@@ -27,13 +31,31 @@ func (ap *AuthProcessor) AuthenticateUser(ctx context.Context, log slog.Logger, 
 		}
 	}
 
-	// 2. Make request to authenticate user
-	var response AuthAPIClientResponse
-	if err := ap.apiClient.Post(ctx, "/auth", authReq, nil, &response, log); err != nil {
+	// 2. Make request to create a user
+	var response apiClientResponse[model.AuthResponse]
+	if err := ap.apiClient.Post(ctx, "/auth/token", authReq, nil, &response, log); err != nil {
 		return nil, err
 	}
 
 	return &response.Data, nil
+}
+
+func (ap *AuthProcessor) ValidateAuthToken(ctx context.Context, log slog.Logger, req model.VerifyRevokeTokenReq) (bool, error) {
+	// 1. Validate request
+	if req.Token == "" {
+		return false, &internal.ExternalError{
+			Message: "Invalid token",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	// 2. Make request to validate token
+
+	var response apiClientResponse[verifyTokenResponse]
+	if err := ap.apiClient.Post(ctx, "/auth/token/verify", req, nil, &response, log); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func NewAuthProcessor(apiClient client.ApiClient) *AuthProcessor {
