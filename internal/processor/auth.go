@@ -9,11 +9,6 @@ import (
 	"xrf197ilz35aq/internal/model"
 )
 
-type apiClientResponse[T any] struct {
-	Code int `json:"code"`
-	Data T   `json:"data"`
-}
-
 type verifyTokenResponse struct {
 	UserId string `json:"userId"`
 }
@@ -32,7 +27,7 @@ func (ap *AuthProcessor) GetAuthToken(ctx context.Context, log slog.Logger, auth
 	}
 
 	// 2. Make request to create a user
-	var response apiClientResponse[model.AuthResponse]
+	var response client.ApiClientResponse[model.AuthResponse]
 	if err := ap.apiClient.Post(ctx, "/auth/token", authReq, nil, &response, log); err != nil {
 		return nil, err
 	}
@@ -50,8 +45,7 @@ func (ap *AuthProcessor) ValidateAuthToken(ctx context.Context, log slog.Logger,
 	}
 
 	// 2. Make request to validate token
-
-	var response apiClientResponse[verifyTokenResponse]
+	var response client.ApiClientResponse[verifyTokenResponse]
 	if err := ap.apiClient.Post(ctx, "/auth/token/verify", req, nil, &response, log); err != nil {
 		return false, err
 	}

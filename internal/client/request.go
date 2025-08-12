@@ -12,6 +12,11 @@ import (
 	"xrf197ilz35aq/internal"
 )
 
+type ApiClientResponse[T any] struct {
+	Code int `json:"code"`
+	Data T   `json:"data"`
+}
+
 type ApiClient struct {
 	baseURL        string
 	httpClient     *http.Client
