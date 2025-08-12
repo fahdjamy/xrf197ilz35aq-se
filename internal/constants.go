@@ -10,7 +10,7 @@ const (
 
 const (
 	ContentType     = "Content-Type"
-	XrfAuthToken    = "x-rf-se-token"
+	XrfAuthToken    = "XRF-auth-token"
 	ApplicationJson = "application/json"
 	SrvToSrvToken   = "XRF-srv-to-srv-token"
 )

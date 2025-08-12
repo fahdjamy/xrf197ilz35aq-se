@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"xrf197ilz35aq/internal"
+	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server/api/response"
 )
@@ -18,7 +19,20 @@ func (m *AuthenticationMiddleware) Handler(next http.Handler) http.Handler {
 		if m.shouldCheckRouteAuth(r) {
 			authToken := r.Header.Get(internal.XrfAuthToken)
 			if authToken == "" {
-				externalErr := &internal.ExternalError{Message: "invalid/missing x-rf-se-token", Code: 401}
+				externalErr := &internal.ExternalError{Message: "invalid auth token", Code: 401}
+				response.WriteErrorResponse(externalErr, w, m.logger)
+				return
+			}
+
+			req := model.VerifyRevokeTokenReq{Token: authToken}
+			valid, err := m.authProcessor.ValidateAuthToken(r.Context(), m.logger, req)
+			if err != nil {
+				externalErr := &internal.ExternalError{Message: err.Error(), Code: 401}
+				response.WriteErrorResponse(externalErr, w, m.logger)
+				return
+			}
+			if !valid {
+				externalErr := &internal.ExternalError{Message: "invalid auth token", Code: 401}
 				response.WriteErrorResponse(externalErr, w, m.logger)
 				return
 			}
