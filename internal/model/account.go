@@ -51,7 +51,6 @@ type AccountResponse struct {
 
 type WalletHolding struct {
 	Balance          float64   `json:"balance"`
-	AccountId        string    `json:"accountId"`
 	Currency         string    `json:"currency"`
 	ModificationTime time.Time `json:"modificationTime"`
 }
