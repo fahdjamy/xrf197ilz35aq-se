@@ -2,14 +2,20 @@ package internal
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 type LogConfig struct {
 	OutputFile string `yaml:"outputFile"`
+}
+
+type GrpcConfig struct {
+	Address string `yaml:"address"`
+	Port    int    `yaml:"port"`
 }
 
 type OrgConfig struct {
