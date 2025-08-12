@@ -1,6 +1,9 @@
 package internal
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type ExternalError struct {
 	Message string `json:"message"`
@@ -28,3 +31,5 @@ type ServerError struct {
 func (aErr *ServerError) Error() string {
 	return fmt.Sprintf("Internal Service error: %s", aErr.Message)
 }
+
+var ErrInvalidGRPCTimeStamp = errors.New("invalid from gRPC server")

@@ -1,10 +1,15 @@
 package model
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"time"
+)
 
 type AccountRequest struct {
-	AccountType string `json:"accountType" validate:"required"`
 	Currency    string `json:"currency" validate:"required"`
+	Timezone    string `json:"timezone" validate:"required"`
+	AccountType string `json:"accountType" validate:"required"`
 }
 
 func (m *AccountRequest) Validate() error {
@@ -24,23 +29,31 @@ func (m *AccountRequest) Validate() error {
 	if !acceptedCurrency[m.Currency] {
 		return errors.New("invalid currency")
 	}
+	if m.Timezone == "" {
+		return errors.New("timezone is required")
+	}
+	_, err := time.LoadLocation(m.Timezone)
+	if err != nil {
+		return fmt.Errorf("invalid timezone: %s", m.Timezone)
+	}
 	return nil
 }
 
 type AccountResponse struct {
-	Status    string        `json:"status"`
-	Locked    bool          `json:"locked"`
-	AccountId string        `json:"accountId"`
-	CreatedAt int64         `json:"createdAt"`
-	Timezone  string        `json:"timezone"`
-	Wallet    WalletHolding `json:"walletHolding"`
+	Status           string        `json:"status"`
+	Locked           bool          `json:"locked"`
+	AccountId        string        `json:"accountId"`
+	CreatedAt        time.Time     `json:"createdAt"`
+	Timezone         string        `json:"timezone"`
+	ModificationTime time.Time     `json:"modificationTime"`
+	Wallet           WalletHolding `json:"walletHolding"`
 }
 
 type WalletHolding struct {
-	Balance          float64 `json:"balance"`
-	AccountId        string  `json:"accountId"`
-	Currency         string  `json:"currency"`
-	ModificationTime int64   `json:"modificationTime"`
+	Balance          float64   `json:"balance"`
+	AccountId        string    `json:"accountId"`
+	Currency         string    `json:"currency"`
+	ModificationTime time.Time `json:"modificationTime"`
 }
 
 type AccountsRequest struct {
