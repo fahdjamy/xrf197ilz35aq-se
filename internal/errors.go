@@ -33,3 +33,4 @@ func (aErr *ServerError) Error() string {
 }
 
 var ErrInvalidGRPCTimeStamp = errors.New("invalid from gRPC server")
+var GrpcConnectionClosedErr = errors.New("grpc connection closed")
