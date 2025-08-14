@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
-	v1 "xrf197ilz35aq/proto/gen/proto/account/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+type RPCClientDialer func(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
 
 // ConnectionManager handles the lifecycle of gRPC client connections.
 // Ensures connections are reused and re-established when needed.
@@ -18,10 +19,17 @@ type ConnectionManager struct {
 	mut sync.RWMutex
 	// connections stores active gRPC connections, keyed by server address. || sync.Map is a thread-safe map
 	connections sync.Map
+	dialer      RPCClientDialer
 }
 
-func (m *ConnectionManager) NewConnectionManager() *ConnectionManager {
-	return &ConnectionManager{}
+func NewConnectionManager(dialer RPCClientDialer) *ConnectionManager {
+	if dialer == nil {
+		// default to gRPC NewClient dialer
+		dialer = grpc.NewClient
+	}
+	return &ConnectionManager{
+		dialer: dialer,
+	}
 }
 
 func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Logger) (*grpc.ClientConn, error) {
@@ -40,7 +48,7 @@ func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Lo
 
 	logger.Info("creating new gRPC connection", "address", address)
 	// --- 2. Create a new connection if one doesn't exist or was closed ---
-	newConn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	newConn, err := m.dialer(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("error creating gRPC connection: %w", err)
 	}
@@ -89,20 +97,4 @@ func (m *ConnectionManager) Close() {
 		}
 		return true
 	})
-}
-
-type XRFRPCServices struct {
-	AccountClient v1.AccountServiceClient
-}
-
-func RegisterXRFRPCServices(address string, log slog.Logger, manager *ConnectionManager) (*XRFRPCServices, error) {
-	conn, err := manager.CreateOrGetConnection(address, log)
-	if err != nil {
-		return nil, err
-	}
-
-	accountClient := v1.NewAccountServiceClient(conn)
-	return &XRFRPCServices{
-		AccountClient: accountClient,
-	}, nil
 }
