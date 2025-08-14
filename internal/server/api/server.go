@@ -20,10 +20,15 @@ func CreateServer(logger *slog.Logger, appConfig internal.AppConfig, processors 
 	healthReqHandler := handlers.NewReqHealthHandlers(*logger)
 	authReqHandler := handlers.NewAuthHandler(*logger, processors.AuthProcessor)
 	userReqHandler := handlers.NewUserReqHandler(*logger, processors.UserProcessor)
+	accountReqHandler := handlers.NewAccountHandler(*logger, processors.AccountProcessor)
 
-	reqHandlers = append(reqHandlers, healthReqHandler)
-	reqHandlers = append(reqHandlers, userReqHandler)
-	reqHandlers = append(reqHandlers, authReqHandler)
+	reqHandlers = append(
+		reqHandlers,
+		authReqHandler,
+		userReqHandler,
+		healthReqHandler,
+		accountReqHandler,
+	)
 
 	for _, handler := range reqHandlers {
 		handler.RegisterRoutes(serverMux)
