@@ -2,59 +2,45 @@ package grpc
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
-	"xrf197ilz35aq/internal"
-	v1 "xrf197ilz35aq/proto/gen/proto/account/v1"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure" // For dev/testing only
+	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-var (
-	// 1. Declare a sync.Once and a variable to hold our connection.
-	once     sync.Once
-	grpcConn *grpc.ClientConn
-	connErr  error
-)
-
-type RPCServices struct {
-	AccountClient v1.AccountServiceClient
+// ConnectionManager handles the lifecycle of gRPC client connections.
+// Ensures connections are reused and re-established when needed.
+type ConnectionManager struct {
+	// A mutex is used to protect the conns map during read/write operations to prevent race conditions.
+	mut sync.RWMutex
+	// connections stores active gRPC connections, keyed by server address. || sync.Map is a thread-safe map
+	connections sync.Map
 }
 
-type RPCClient struct {
-	config internal.GrpcConfig
-}
+func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Logger) (*grpc.ClientConn, error) {
+	// Ensure that the connection-checking and creation logic is atomic.
+	m.mut.RLock()
+	defer m.mut.RUnlock()
 
-func (c *RPCClient) Connect(config internal.GrpcConfig) (*grpc.ClientConn, error) {
-	return createConnection(config)
-}
-
-func createConnection(config internal.GrpcConfig) (*grpc.ClientConn, error) {
-	once.Do(func() {
-		c, err := grpc.NewClient(
-			config.Address,
-			// For production, always use secure credentials!
-			// e.g., grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, ""))
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-		)
-		if err != nil {
-			connErr = err // Store the error if connection fails.
-			return
+	//////// 1. Check for an existing, healthy connection ---
+	if conn, ok := m.connections.Load(address); ok && conn != nil {
+		clientConn := conn.(*grpc.ClientConn)
+		if clientConn.GetState() != connectivity.Shutdown {
+			return clientConn, nil
 		}
-		grpcConn = c
-	})
-	if connErr != nil {
-		return nil, fmt.Errorf("failed to create gRPC connection: %w", connErr)
+		logger.Info("connection was already closed", "address", address)
 	}
 
-	return grpcConn, nil
-}
-
-func (c *RPCClient) Register() (*RPCServices, error) {
-	if grpcConn == nil {
-		return nil, fmt.Errorf("conn is nil")
+	logger.Info("creating new gRPC connection", "address", address)
+	// --- 2. Create a new connection if one doesn't exist or was closed ---
+	newConn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("error creating gRPC connection: %w", err)
 	}
 
-	acctClient := v1.NewAccountServiceClient(grpcConn)
-	return &RPCServices{AccountClient: acctClient}, nil
+	//////// 3. Store the new connection for future reuse ---
+	m.connections.Store(address, newConn)
+	return newConn, nil
 }
