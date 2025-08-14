@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	v1 "xrf197ilz35aq/proto/gen/proto/account/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
@@ -17,6 +18,10 @@ type ConnectionManager struct {
 	mut sync.RWMutex
 	// connections stores active gRPC connections, keyed by server address. || sync.Map is a thread-safe map
 	connections sync.Map
+}
+
+func (m *ConnectionManager) NewConnectionManager() *ConnectionManager {
+	return &ConnectionManager{}
 }
 
 func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Logger) (*grpc.ClientConn, error) {
@@ -43,4 +48,61 @@ func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Lo
 	//////// 3. Store the new connection for future reuse ---
 	m.connections.Store(address, newConn)
 	return newConn, nil
+}
+
+func (m *ConnectionManager) CloseConnection(address string, log slog.Logger) {
+	m.mut.Lock()
+	defer m.mut.Unlock()
+
+	if conn, ok := m.connections.LoadAndDelete(address); ok && conn != nil {
+		err := conn.(*grpc.ClientConn).Close()
+		if err != nil {
+			log.Warn("error closing gRPC connection", "address", address, "err", err)
+		}
+		log.Info("closed gRPC connection", "address", address)
+		m.connections.Delete(address)
+	}
+}
+
+func (m *ConnectionManager) CloseAll(log slog.Logger) {
+	m.mut.Lock()
+	defer m.mut.Unlock()
+	log.Info("closing all gRPC connections")
+	m.connections.Range(func(key, value interface{}) bool {
+		if conn, ok := m.connections.LoadAndDelete(key); ok && conn != nil {
+			err := conn.(*grpc.ClientConn).Close()
+			if err != nil {
+				log.Warn("error closing gRPC connection", "address", key, "err", err)
+			}
+		}
+		return true
+	})
+}
+
+// Close is used to close all connections but ideally, user should call CloseAll (ConnectionManager.CloseAll)
+func (m *ConnectionManager) Close() {
+	m.mut.Lock()
+	defer m.mut.Unlock()
+	m.connections.Range(func(key, value interface{}) bool {
+		if conn, ok := m.connections.LoadAndDelete(key); ok && conn != nil {
+			_ = conn.(*grpc.ClientConn).Close()
+		}
+		return true
+	})
+}
+
+type XRFRPCServices struct {
+	AccountClient v1.AccountServiceClient
+}
+
+func RegisterXRFRPCServices(address string, log slog.Logger, manager *ConnectionManager) (*XRFRPCServices, error) {
+	conn, err := manager.CreateOrGetConnection(address, log)
+	if err != nil {
+		return nil, err
+	}
+
+	accountClient := v1.NewAccountServiceClient(conn)
+	return &XRFRPCServices{
+		AccountClient: accountClient,
+	}, nil
 }
