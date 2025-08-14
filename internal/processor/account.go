@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 	"xrf197ilz35aq/internal"
-	"xrf197ilz35aq/internal/client"
 	"xrf197ilz35aq/internal/model"
 	v1 "xrf197ilz35aq/proto/gen/proto/account/v1"
 
@@ -19,7 +18,6 @@ type AccountProcessor interface {
 }
 
 type accountProcessor struct {
-	apiClient      client.ApiClient
 	grpcAcctClient v1.AccountServiceClient
 }
 
@@ -96,9 +94,6 @@ func ConvertTimestamp(ts *timestamppb.Timestamp, tz string) (time.Time, error) {
 	return goTime.In(location), nil
 }
 
-func NewAccountProcessor(apiClient client.ApiClient, grpcAcctService v1.AccountServiceClient) AccountProcessor {
-	return &accountProcessor{
-		apiClient:      apiClient,
-		grpcAcctClient: grpcAcctService,
-	}
+func NewAccountProcessor(grpcAcctService v1.AccountServiceClient) AccountProcessor {
+	return &accountProcessor{grpcAcctClient: grpcAcctService}
 }

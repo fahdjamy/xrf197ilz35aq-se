@@ -12,8 +12,10 @@ import (
 	"syscall"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/client"
+	"xrf197ilz35aq/internal/client/grpc"
 	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server/api"
+	v1 "xrf197ilz35aq/proto/gen/proto/account/v1"
 )
 
 func main() {
@@ -37,13 +39,26 @@ func main() {
 	}
 	apiClient := client.NewApiClient(parsedUrl.String(), config.Application, client.WithTimeout(config.Service.Organization.APIClientTimeout), client.WithDefaultHeader(defaultHeaders))
 
-	/// Create request processors
+	////// Create gRPC connection
+	connManager := grpc.NewConnectionManager(nil)
+	xrfQ3Conn, err := connManager.CreateOrGetConnection(config.Service.AccountQ3.Address, *logger)
+	if err != nil {
+		logger.Error("failed to create xrfQ3 connection", "err", err)
+		return
+	}
+
+	////// register gRPC client
+	acctServiceClient := v1.NewAccountServiceClient(xrfQ3Conn)
+
+	///// Create request processors
 	userProcessor := processor.NewUserProcessor(*apiClient)
 	authProcessor := processor.NewAuthProcessor(*apiClient)
+	accountProcessor := processor.NewAccountProcessor(acctServiceClient)
 
 	processors := processor.Processors{
-		UserProcessor: *userProcessor,
-		AuthProcessor: *authProcessor,
+		UserProcessor:    *userProcessor,
+		AuthProcessor:    *authProcessor,
+		AccountProcessor: accountProcessor,
 	}
 
 	server := api.CreateServer(logger, config.Application, &processors)

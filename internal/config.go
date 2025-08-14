@@ -24,7 +24,8 @@ type OrgConfig struct {
 }
 
 type ServiceConfig struct {
-	Organization OrgConfig `yaml:"organization"`
+	AccountQ3    GrpcConfig `yaml:"account-q3"`
+	Organization OrgConfig  `yaml:"organization"`
 }
 
 type AppConfig struct {
