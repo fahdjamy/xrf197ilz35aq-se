@@ -19,9 +19,7 @@ type userHandler struct {
 func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
-	defer func() {
-		logger.Info("event=createUser latency", "latency", time.Since(startTime))
-	}()
+	defer logLatency(startTime, "createUser", *logger)
 	var userReq model.UserRequest
 
 	err := request.DecodeJSONBody(r, &userReq)
@@ -47,9 +45,7 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
-	defer func() {
-		logger.Info("event=getUser latency", "latency", time.Since(startTime))
-	}()
+	defer logLatency(startTime, "getUser", *logger)
 
 	userId, isValid := getAndValidateId(r, "userId")
 	if !isValid {

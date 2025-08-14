@@ -19,9 +19,7 @@ type accountHandler struct {
 func (ah *accountHandler) createAccount(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger := internal.LoggerFromContext(r.Context(), ah.defaultLogger)
-	defer func() {
-		logger.Info("event=createAccount", "latency", time.Since(startTime))
-	}()
+	defer logLatency(startTime, "createAccount", *logger)
 
 	var req model.AccountRequest
 	if err := request.DecodeJSONBody(r, &req); err != nil {
