@@ -4,11 +4,12 @@
 proto:
 	@echo "Generating protobuf files..."
 	# Ensure the output directory exists
-	mkdir -p proto/gen
+	mkdir -p gen
 	# Run the protoc compiler
-	protoc --go_out=./proto/gen --go_opt=paths=source_relative \
-	    --go-grpc_out=./proto/gen --go-grpc_opt=paths=source_relative \
-	    proto/account/v1/account.proto
+	find proto -name '*.proto' -exec protoc \
+		--proto_path=proto \
+		--go_out=./gen --go_opt=paths=source_relative \
+		--go-grpc_out=./gen --go-grpc_opt=paths=source_relative {} +
 
 clean:
 	@echo "Cleaning up generated files..."
