@@ -10,12 +10,12 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	v1 "xrf197ilz35aq/gen/account/v1"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/client"
 	"xrf197ilz35aq/internal/client/grpc"
 	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server/api"
-	v1 "xrf197ilz35aq/proto/gen/proto/account/v1"
 )
 
 func main() {

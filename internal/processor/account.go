@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	v1 "xrf197ilz35aq/gen/account/v1"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
-	v1 "xrf197ilz35aq/proto/gen/proto/account/v1"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
