@@ -1,13 +1,16 @@
 package grpc
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 )
 
 type RPCClientDialer func(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
@@ -32,7 +35,7 @@ func NewConnectionManager(dialer RPCClientDialer) *ConnectionManager {
 	}
 }
 
-func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Logger) (*grpc.ClientConn, error) {
+func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Logger, certPath string) (*grpc.ClientConn, error) {
 	// Ensure that the connection-checking and creation logic is atomic.
 	m.mut.RLock()
 	defer m.mut.RUnlock()
@@ -47,13 +50,38 @@ func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Lo
 	}
 
 	logger.Info("creating new gRPC connection", "address", address)
-	// --- 2. Create a new connection if one doesn't exist or was closed ---
-	newConn, err := m.dialer(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	// ---- 2. Load certificate
+	//caCert, err := os.ReadFile("../server/local/secrets/ssl/server.crt")
+	caCert, err := os.ReadFile(certPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read certificate: %w", err)
+	}
+
+	// 2.1. Create a certificate pool and add the server's certificate.
+	certPool := x509.NewCertPool()
+	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
+		return nil, fmt.Errorf("could not append certificate to pool")
+	}
+
+	// 2.1. Create transport credentials with the certificate pool.
+	creds := credentials.NewTLS(&tls.Config{
+		// The RootCAs field is the most important part.
+		// It tells the client which CAs to trust.
+		RootCAs: certPool,
+		// The ServerName must match the CN in the certificate.
+		// Your command used "/CN=localhost".
+		ServerName: "localhost",
+	})
+
+	// --- 3. Create a new connection if one doesn't exist or was closed ---
+
+	newConn, err := m.dialer(address, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, fmt.Errorf("error creating gRPC connection: %w", err)
 	}
 
-	//////// 3. Store the new connection for future reuse ---
+	//////// 4. Store the new connection for future reuse ---
 	m.connections.Store(address, newConn)
 	return newConn, nil
 }

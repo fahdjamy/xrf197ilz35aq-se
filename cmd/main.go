@@ -3,14 +3,17 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
-	v1 "xrf197ilz35aq/gen/account/v1"
+	accountV1 "xrf197ilz35aq/gen/account/v1"
+	xrfq3V1 "xrf197ilz35aq/gen/xrfq3/v1"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/client"
 	"xrf197ilz35aq/internal/client/grpc"
@@ -40,15 +43,25 @@ func main() {
 	apiClient := client.NewApiClient(parsedUrl.String(), config.Application, client.WithTimeout(config.Service.Organization.APIClientTimeout), client.WithDefaultHeader(defaultHeaders))
 
 	////// Create gRPC connection
+	xrfQ3CertPath := "local/secrets/ssl/server.crt"
 	connManager := grpc.NewConnectionManager(nil)
-	xrfQ3Conn, err := connManager.CreateOrGetConnection(config.Service.AccountQ3.Address, *logger)
+	xrfQ3Conn, err := connManager.CreateOrGetConnection(config.Service.Account.Address, *logger, xrfQ3CertPath)
 	if err != nil {
 		logger.Error("failed to create xrfQ3 connection", "err", err)
 		return
 	}
 
 	////// register gRPC client
-	acctServiceClient := v1.NewAccountServiceClient(xrfQ3Conn)
+	acctServiceClient := accountV1.NewAccountServiceClient(xrfQ3Conn)
+	xrfQ3AppServiceClient := xrfq3V1.NewAppServiceClient(xrfQ3Conn)
+
+	///// Check xrfQ3 gRPC service health
+	err = checkXrfQ3Health(context.Background(), xrfQ3AppServiceClient, *logger)
+
+	if err != nil {
+		logger.Error("XRF-Q3 app is not running", "err", err)
+		return
+	}
 
 	///// Create request processors
 	userProcessor := processor.NewUserProcessor(*apiClient)
@@ -109,4 +122,16 @@ func getAppEnv() string {
 	default:
 		return internal.DevelopEnv
 	}
+}
+
+func checkXrfQ3Health(ctx context.Context, xrfQ3RPCClient xrfq3V1.AppServiceClient, log slog.Logger) error {
+	resp, err := xrfQ3RPCClient.CheckHealth(ctx, &xrfq3V1.CheckHealthRequest{})
+	if err != nil {
+		return fmt.Errorf("xrfQ3RPC-service failure, err:: %w", err)
+	}
+	if !resp.IsUp {
+		return fmt.Errorf("xrfQ3RPC is NOT running")
+	}
+	log.Info("xrfQ3RPC running healthy...", "port", resp.Region, "appId", resp.AppId)
+	return nil
 }
