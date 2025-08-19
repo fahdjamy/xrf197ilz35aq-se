@@ -43,8 +43,11 @@ func main() {
 	apiClient := client.NewApiClient(parsedUrl.String(), config.Application, client.WithTimeout(config.Service.Organization.APIClientTimeout), client.WithDefaultHeader(defaultHeaders))
 
 	////// Create gRPC connection
+	// The ServerName must match the CN in the certificate.
+	// for local testing, usually it;s /CN=localhost
+	xrfQ3ServerName := "localhost"
 	xrfQ3CertPath := "local/secrets/ssl/server.crt"
-	connManager := grpc.NewConnectionManager(nil)
+	connManager := grpc.NewConnectionManager(nil, grpc.NewTLSDialOptionProvider(xrfQ3CertPath, xrfQ3ServerName))
 	xrfQ3Conn, err := connManager.CreateOrGetConnection(config.Service.Account.Address, *logger, xrfQ3CertPath)
 	if err != nil {
 		logger.Error("failed to create xrfQ3 connection", "err", err)

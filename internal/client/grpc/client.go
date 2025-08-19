@@ -1,7 +1,6 @@
 package grpc
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -15,6 +14,9 @@ import (
 
 type RPCClientDialer func(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
 
+// DialOptionProvider defines a function that returns the necessary dial options for a connection.
+type DialOptionProvider func(address string) ([]grpc.DialOption, error)
+
 // ConnectionManager handles the lifecycle of gRPC client connections.
 // Ensures connections are reused and re-established when needed.
 type ConnectionManager struct {
@@ -23,15 +25,17 @@ type ConnectionManager struct {
 	// connections stores active gRPC connections, keyed by server address. || sync.Map is a thread-safe map
 	connections sync.Map
 	dialer      RPCClientDialer
+	dialOptions DialOptionProvider
 }
 
-func NewConnectionManager(dialer RPCClientDialer) *ConnectionManager {
+func NewConnectionManager(dialer RPCClientDialer, optionProvider DialOptionProvider) *ConnectionManager {
 	if dialer == nil {
 		// default to gRPC NewClient dialer
 		dialer = grpc.NewClient
 	}
 	return &ConnectionManager{
-		dialer: dialer,
+		dialer:      dialer,
+		dialOptions: optionProvider,
 	}
 }
 
@@ -51,32 +55,15 @@ func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Lo
 
 	logger.Info("creating new gRPC connection", "address", address)
 
-	// ---- 2. Load certificate
-	//caCert, err := os.ReadFile("../server/local/secrets/ssl/server.crt")
-	caCert, err := os.ReadFile(certPath)
+	//////// 2. Get the required dial options
+	opts, err := m.dialOptions(address)
 	if err != nil {
-		return nil, fmt.Errorf("could not read certificate: %w", err)
+		return nil, err
 	}
 
-	// 2.1. Create a certificate pool and add the server's certificate.
-	certPool := x509.NewCertPool()
-	if ok := certPool.AppendCertsFromPEM(caCert); !ok {
-		return nil, fmt.Errorf("could not append certificate to pool")
-	}
+	//////// 3. Create a new connection if one doesn't exist or was closed ---
 
-	// 2.1. Create transport credentials with the certificate pool.
-	creds := credentials.NewTLS(&tls.Config{
-		// The RootCAs field is the most important part.
-		// It tells the client which CAs to trust.
-		RootCAs: certPool,
-		// The ServerName must match the CN in the certificate.
-		// Your command used "/CN=localhost".
-		ServerName: "localhost",
-	})
-
-	// --- 3. Create a new connection if one doesn't exist or was closed ---
-
-	newConn, err := m.dialer(address, grpc.WithTransportCredentials(creds))
+	newConn, err := m.dialer(address, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating gRPC connection: %w", err)
 	}
@@ -125,4 +112,22 @@ func (m *ConnectionManager) Close() {
 		}
 		return true
 	})
+}
+
+// NewTLSDialOptionProvider creates a provider that configures a client for TLS.
+func NewTLSDialOptionProvider(certPath, serverName string) DialOptionProvider {
+	return func(address string) ([]grpc.DialOption, error) {
+		caCert, err := os.ReadFile(certPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read certificate: %w", err)
+		}
+
+		certPool := x509.NewCertPool()
+		if ok := certPool.AppendCertsFromPEM(caCert); !ok {
+			return nil, fmt.Errorf("could not append certificate to pool")
+		}
+
+		creds := credentials.NewClientTLSFromCert(certPool, serverName)
+		return []grpc.DialOption{grpc.WithTransportCredentials(creds)}, nil
+	}
 }
