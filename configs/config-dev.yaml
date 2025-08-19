@@ -24,8 +24,9 @@ application:
   apiClientTimeout: 20s
 
 service:
+  account:
+    port: "50053"
+    address: "localhost:50053"
   organization:
     apiClientTimeout: 20s
     baseURL: "http://127.0.0.1:8009/api/v1"
-  account-q3:
-    address: "localhost:50051"

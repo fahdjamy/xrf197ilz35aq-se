@@ -15,7 +15,7 @@ type LogConfig struct {
 
 type GrpcConfig struct {
 	Address string `yaml:"address"`
-	Port    int    `yaml:"port"`
+	Port    string `yaml:"port"`
 }
 
 type OrgConfig struct {
@@ -24,7 +24,7 @@ type OrgConfig struct {
 }
 
 type ServiceConfig struct {
-	AccountQ3    GrpcConfig `yaml:"account-q3"`
+	Account      GrpcConfig `yaml:"account"`
 	Organization OrgConfig  `yaml:"organization"`
 }
 
