@@ -48,7 +48,7 @@ func main() {
 	xrfQ3ServerName := "localhost"
 	xrfQ3CertPath := "local/secrets/ssl/server.crt"
 	connManager := grpc.NewConnectionManager(nil, grpc.NewTLSDialOptionProvider(xrfQ3CertPath, xrfQ3ServerName))
-	xrfQ3Conn, err := connManager.CreateOrGetConnection(config.Service.Account.Address, *logger, xrfQ3CertPath)
+	xrfQ3Conn, err := connManager.CreateOrGetConnection(config.Service.Account.Address, *logger)
 	if err != nil {
 		logger.Error("failed to create xrfQ3 connection", "err", err)
 		return

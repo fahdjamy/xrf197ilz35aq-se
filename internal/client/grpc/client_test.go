@@ -17,7 +17,6 @@ import (
 )
 
 const testGrpcAddress = "bufnet-test-conn"
-const certPath = ""
 
 var testLogger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -59,17 +58,17 @@ func newRPCTestDialer() RPCClientDialer {
 }
 
 func TestConnectionManager_CreateOrGetConnection(t *testing.T) {
-	manager := NewConnectionManager(newRPCTestDialer())
+	manager := NewConnectionManager(newRPCTestDialer(), newInsecureDialOptionProvider())
 	defer manager.Close()
 
 	// 1. first call should create connection
-	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger, certPath)
+	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger)
 	if err != nil {
 		t.Fatalf("CreateOrGetConnection() failed: %v", err)
 	}
 
 	//2. second call should re-use the already created connection
-	conn2, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger, certPath)
+	conn2, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger)
 	if err != nil {
 		t.Fatalf("CreateOrGetConnection() failed: %v", err)
 	}
@@ -80,10 +79,10 @@ func TestConnectionManager_CreateOrGetConnection(t *testing.T) {
 }
 
 func TestConnectionManager_CloseAll(t *testing.T) {
-	manager := NewConnectionManager(newRPCTestDialer())
+	manager := NewConnectionManager(newRPCTestDialer(), newInsecureDialOptionProvider())
 	defer manager.Close()
 
-	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger, certPath)
+	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger)
 	if err != nil {
 		t.Fatalf("CreateOrGetConnection() failed: %v", err)
 	}
@@ -96,10 +95,10 @@ func TestConnectionManager_CloseAll(t *testing.T) {
 }
 
 func TestConnectionManager_CloseConnection(t *testing.T) {
-	manager := NewConnectionManager(newRPCTestDialer())
+	manager := NewConnectionManager(newRPCTestDialer(), newInsecureDialOptionProvider())
 	defer manager.Close()
 
-	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger, certPath)
+	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger)
 	if err != nil {
 		t.Fatalf("CreateOrGetConnection() failed: %v", err)
 	}
@@ -111,10 +110,10 @@ func TestConnectionManager_CloseConnection(t *testing.T) {
 }
 
 func TestConnectionManager_Close(t *testing.T) {
-	manager := NewConnectionManager(newRPCTestDialer())
+	manager := NewConnectionManager(newRPCTestDialer(), newInsecureDialOptionProvider())
 	defer manager.Close()
 
-	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger, certPath)
+	conn1, err := manager.CreateOrGetConnection(testGrpcAddress, *testLogger)
 	if err != nil {
 		t.Fatalf("CreateOrGetConnection() failed: %v", err)
 	}

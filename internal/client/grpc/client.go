@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type RPCClientDialer func(address string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
@@ -39,7 +40,7 @@ func NewConnectionManager(dialer RPCClientDialer, optionProvider DialOptionProvi
 	}
 }
 
-func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Logger, certPath string) (*grpc.ClientConn, error) {
+func (m *ConnectionManager) CreateOrGetConnection(address string, logger slog.Logger) (*grpc.ClientConn, error) {
 	// Ensure that the connection-checking and creation logic is atomic.
 	m.mut.RLock()
 	defer m.mut.RUnlock()
@@ -129,5 +130,11 @@ func NewTLSDialOptionProvider(certPath, serverName string) DialOptionProvider {
 
 		creds := credentials.NewClientTLSFromCert(certPool, serverName)
 		return []grpc.DialOption{grpc.WithTransportCredentials(creds)}, nil
+	}
+}
+
+func newInsecureDialOptionProvider() DialOptionProvider {
+	return func(address string) ([]grpc.DialOption, error) {
+		return []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}, nil
 	}
 }
