@@ -6,6 +6,7 @@ import (
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
+	"xrf197ilz35aq/internal/server"
 	"xrf197ilz35aq/internal/server/api/response"
 )
 
@@ -16,6 +17,7 @@ type AuthenticationMiddleware struct {
 
 func (m *AuthenticationMiddleware) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		if m.shouldCheckRouteAuth(r) {
 			authToken := r.Header.Get(internal.XrfAuthToken)
 			if authToken == "" {
@@ -25,20 +27,22 @@ func (m *AuthenticationMiddleware) Handler(next http.Handler) http.Handler {
 			}
 
 			req := model.VerifyRevokeTokenReq{Token: authToken}
-			valid, err := m.authProcessor.ValidateAuthToken(r.Context(), m.logger, req)
+			userCtx, err := m.authProcessor.ValidateAuthToken(r.Context(), m.logger, req)
 			if err != nil {
 				externalErr := &internal.ExternalError{Message: err.Error(), Code: 401}
 				response.WriteErrorResponse(externalErr, w, m.logger)
 				return
 			}
-			if !valid {
+			if userCtx == nil {
 				externalErr := &internal.ExternalError{Message: "invalid auth token", Code: 401}
 				response.WriteErrorResponse(externalErr, w, m.logger)
 				return
 			}
+			// set context to the enriched context with the user context obj
+			ctx = server.ContextWithUserCtx(r.Context(), *userCtx)
 		}
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
