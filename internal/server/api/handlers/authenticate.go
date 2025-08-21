@@ -4,9 +4,9 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
-	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
+	"xrf197ilz35aq/internal/server"
 	"xrf197ilz35aq/internal/server/api/request"
 	"xrf197ilz35aq/internal/server/api/response"
 )
@@ -18,7 +18,7 @@ type AuthHandler struct {
 
 func (auth *AuthHandler) authenticateUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	logger := internal.LoggerFromContext(r.Context(), auth.defaultLogger)
+	logger := server.LoggerFromContext(r.Context(), auth.defaultLogger)
 	defer logLatency(startTime, "authenticateUser", *logger)
 
 	var req model.AuthRequest

@@ -1,8 +1,9 @@
-package internal
+package server
 
 import (
 	"context"
 	"log/slog"
+	"xrf197ilz35aq/internal/model"
 )
 
 // ContextKey is a custom type to avoid key collisions in the context map.
@@ -26,4 +27,18 @@ func CreateAuthTokenHeader(token string) map[string]string {
 	return map[string]string{
 		xrfAuthToken: token,
 	}
+}
+
+const UserContextKey = ContextKey("user-context")
+
+// ContextWithUser returns a new context with the given user object.
+func ContextWithUser(ctx context.Context, user model.UserContext) context.Context {
+	return context.WithValue(ctx, UserContextKey, user)
+}
+
+// UserFromContext retrieves the user object from the context.
+// It returns the user and a boolean indicating if the user was found.
+func UserFromContext(ctx context.Context) (*model.UserContext, bool) {
+	user, ok := ctx.Value(UserContextKey).(*model.UserContext)
+	return user, ok
 }

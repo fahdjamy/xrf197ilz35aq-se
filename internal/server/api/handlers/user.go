@@ -7,6 +7,7 @@ import (
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
+	"xrf197ilz35aq/internal/server"
 	"xrf197ilz35aq/internal/server/api/request"
 	"xrf197ilz35aq/internal/server/api/response"
 )
@@ -18,7 +19,7 @@ type userHandler struct {
 
 func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
+	logger := server.LoggerFromContext(r.Context(), uh.defaultLogger)
 	defer logLatency(startTime, "createUser", *logger)
 	var userReq model.UserRequest
 
@@ -44,7 +45,7 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
 func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
-	logger := internal.LoggerFromContext(r.Context(), uh.defaultLogger)
+	logger := server.LoggerFromContext(r.Context(), uh.defaultLogger)
 	defer logLatency(startTime, "getUser", *logger)
 
 	userId, isValid := getAndValidateId(r, "userId")

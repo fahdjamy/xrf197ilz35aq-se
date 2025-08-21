@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/random"
+	"xrf197ilz35aq/internal/server"
 )
 
 // responseWriter is a wrapper around http.ResponseWriter that captures the status code
@@ -57,7 +57,7 @@ func (lh *LoggerHandler) Handler(next http.Handler) http.Handler {
 		wrappedWriter.Header().Set("req-trace-id", requestId)
 
 		// 4. Create a new context with our request-scoped logger.
-		ctx := context.WithValue(r.Context(), internal.LoggerContextKey, loggerWithReqId)
+		ctx := context.WithValue(r.Context(), server.LoggerContextKey, loggerWithReqId)
 
 		// Call the next handler.
 		next.ServeHTTP(wrappedWriter, r.WithContext(ctx))
