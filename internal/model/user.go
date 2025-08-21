@@ -168,3 +168,20 @@ type AuthResponse struct {
 	Token  string `json:"token"`
 	Expiry int64  `json:"expiry"`
 }
+
+type UserContext struct {
+	UserId      string    `json:"userId"`
+	Fingerprint string    `json:"fingerprint"`
+	FirstName   string    `json:"firstName,omitempty"`
+	LastName    string    `json:"lastName,omitempty"`
+	Anonymous   bool      `json:"anonymous"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type UserSettingContext struct {
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+	EncryptionKey string    `json:"encryptionKey"`
+	RotateKey     bool      `json:"rotateKey"`
+}
