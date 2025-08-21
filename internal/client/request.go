@@ -19,6 +19,7 @@ type ApiClientResponse[T any] struct {
 
 type ApiClient struct {
 	baseURL        string
+	appId          string
 	httpClient     *http.Client
 	defaultHeaders map[string]string
 	appConfig      internal.AppConfig
@@ -65,8 +66,8 @@ func (c *ApiClient) do(ctx context.Context, method, path string, body interface{
 	if body != nil {
 		req.Header.Set(internal.ContentType, internal.ApplicationJson)
 	}
-	// Always, set service to service token
-	req.Header.Set(internal.SrvToSrvToken, generateSrvToSrvToken())
+	// Always, set the service/app id header
+	req.Header.Set(internal.XrfHeaderAppId, c.appId)
 
 	// 5. Execute the request
 	resp, err := c.httpClient.Do(req)
@@ -146,6 +147,7 @@ func NewApiClient(baseURL string, appConfig internal.AppConfig, options ...Optio
 	apiClient := &ApiClient{
 		baseURL:        baseURL,
 		appConfig:      appConfig,
+		appId:          getAppId(),
 		httpClient:     http.DefaultClient,
 		defaultHeaders: make(map[string]string),
 	}
@@ -175,6 +177,6 @@ func WithDefaultHeader(defaultHeaders map[string]string) Option {
 	}
 }
 
-func generateSrvToSrvToken() string {
-	return "srv-to-srv-token/test"
+func getAppId() string {
+	return "xrf-aq-SE"
 }

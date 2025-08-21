@@ -9,10 +9,6 @@ import (
 	"xrf197ilz35aq/internal/model"
 )
 
-type verifyTokenResponse struct {
-	UserId string `json:"userId"`
-}
-
 type AuthProcessor struct {
 	apiClient client.ApiClient
 }
@@ -35,23 +31,36 @@ func (ap *AuthProcessor) GetAuthToken(ctx context.Context, log slog.Logger, auth
 	return &response.Data, nil
 }
 
-func (ap *AuthProcessor) ValidateAuthToken(ctx context.Context, log slog.Logger, req model.VerifyRevokeTokenReq) (bool, error) {
+func (ap *AuthProcessor) ValidateAuthToken(ctx context.Context, log slog.Logger, req model.VerifyRevokeTokenReq) (*model.UserContext, error) {
 	// 1. Validate request
 	if req.Token == "" {
-		return false, &internal.ExternalError{
+		return nil, &internal.ExternalError{
 			Message: "Invalid token",
 			Code:    http.StatusBadRequest,
 		}
 	}
 
 	// 2. Make request to validate token
-	var response client.ApiClientResponse[verifyTokenResponse]
-	if err := ap.apiClient.Post(ctx, "/auth/token/verify", req, nil, &response, log); err != nil {
-		return false, err
+	var response client.ApiClientResponse[model.UserContext]
+
+	// Add XRF-to-XRF-token
+	extraHeaders := map[string]string{}
+	addXrfToXrfHeader(extraHeaders)
+
+	if err := ap.apiClient.Post(ctx, "/auth/token/verify-with-enriched", req, extraHeaders, &response, log); err != nil {
+		return nil, err
 	}
-	return true, nil
+	return &response.Data, nil
+}
+
+func addXrfToXrfHeader(headers map[string]string) {
+	headers[internal.SrvToSrvToken] = getAppXRFToken()
 }
 
 func NewAuthProcessor(apiClient client.ApiClient) *AuthProcessor {
 	return &AuthProcessor{apiClient: apiClient}
+}
+
+func getAppXRFToken() string {
+	return "srv-to-srv-token/test"
 }
