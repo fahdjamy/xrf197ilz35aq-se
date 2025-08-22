@@ -14,14 +14,14 @@ import (
 )
 
 type AccountProcessor interface {
-	CreateAccount(ctx context.Context, req model.AccountRequest) (model.AccountResponse, error)
+	CreateAccount(ctx context.Context, userCtx model.UserContext, req model.AccountRequest) (model.AccountResponse, error)
 }
 
 type accountProcessor struct {
 	grpcAcctClient v1.AccountServiceClient
 }
 
-func (ap *accountProcessor) CreateAccount(ctx context.Context, req model.AccountRequest) (model.AccountResponse, error) {
+func (ap *accountProcessor) CreateAccount(ctx context.Context, userCtx model.UserContext, req model.AccountRequest) (model.AccountResponse, error) {
 	if err := req.Validate(); err != nil {
 		return model.AccountResponse{}, &internal.ExternalError{
 			Message: err.Error(),

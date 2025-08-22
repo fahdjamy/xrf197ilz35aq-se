@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
@@ -27,8 +28,14 @@ func (ah *accountHandler) createAccount(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	userCtx, ok := server.UserFromContext(r.Context())
+	if !ok || userCtx == nil || userCtx.UserId == "" {
+		response.WriteErrorResponse(errors.New("invalid user context object in context"), w, *logger)
+		return
+	}
+
 	//// Call processor
-	savedAccount, err := ah.processor.CreateAccount(r.Context(), req)
+	savedAccount, err := ah.processor.CreateAccount(r.Context(), *userCtx, req)
 	if err != nil {
 		response.WriteErrorResponse(err, w, *logger)
 		return
