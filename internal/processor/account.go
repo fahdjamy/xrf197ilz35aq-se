@@ -2,7 +2,6 @@ package processor
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	v1 "xrf197ilz35aq/gen/account/v1"
@@ -42,34 +41,7 @@ func (ap *accountProcessor) CreateAccount(
 		return model.AccountResponse{}, fmt.Errorf("failed to create account: %w", err)
 	}
 
-	createdAt, err := convertTimestamp(resp.Account.CreationTime, req.Timezone)
-	if err := checkConvertedGrpcTimeErr(err); err != nil {
-		return model.AccountResponse{}, err
-	}
-	modifiedAt, err := convertTimestamp(resp.Account.ModificationTime, req.Timezone)
-	if err := checkConvertedGrpcTimeErr(err); err != nil {
-		return model.AccountResponse{}, err
-	}
-
-	walletHoldingResp := resp.Account.WalletHolding
-	walletModificationTime, err := convertTimestamp(walletHoldingResp.ModificationTime, req.Timezone)
-	if err := checkConvertedGrpcTimeErr(err); err != nil {
-		return model.AccountResponse{}, err
-	}
-
-	return model.AccountResponse{
-		CreatedAt:        createdAt,
-		ModificationTime: modifiedAt,
-		Timezone:         req.Timezone,
-		Status:           resp.Account.Status,
-		Locked:           resp.Account.Locked,
-		AccountId:        resp.Account.AccountId,
-		Wallet: model.WalletHolding{
-			ModificationTime: walletModificationTime,
-			Balance:          walletHoldingResp.Balance,
-			Currency:         walletHoldingResp.Currency,
-		},
-	}, nil
+	return ap.convertAcctResponse(resp.Account, req.Timezone)
 }
 
 func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.UserContext,
@@ -81,7 +53,64 @@ func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.User
 		}
 	}
 
-	return nil, errors.New("not implemented")
+	gRPCCtxWithHeaders := createGrpcContextWithHeaders(ctx, userCtx)
+	resp, err := ap.grpcAcctClient.FindAccountsByCurrencyOrType(gRPCCtxWithHeaders, &v1.FindAccountsByCurrencyOrTypeRequest{
+		Currencies: &v1.CurrencyList{Currencies: req.Currencies},
+		AcctTypes:  &v1.AccountTypesList{Types: req.AccountTypes},
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to find accounts: %w", err)
+	}
+
+	if resp.Accounts == nil || len(resp.Accounts) == 0 {
+		return []model.AccountResponse{}, nil
+	}
+
+	var accounts []model.AccountResponse
+	for _, account := range resp.Accounts {
+		response, err := ap.convertAcctResponse(account, "UTC")
+		if err != nil {
+			return []model.AccountResponse{}, &internal.ServerError{
+				Message: err.Error(),
+				Err:     err,
+			}
+		}
+		accounts = append(accounts, response)
+	}
+
+	return accounts, nil
+}
+
+func (ap *accountProcessor) convertAcctResponse(response *v1.AccountResponse, tx string) (model.AccountResponse, error) {
+	createdAt, err := convertTimestamp(response.CreationTime, tx)
+	if err := checkConvertedGrpcTimeErr(err); err != nil {
+		return model.AccountResponse{}, err
+	}
+	modifiedAt, err := convertTimestamp(response.ModificationTime, tx)
+	if err := checkConvertedGrpcTimeErr(err); err != nil {
+		return model.AccountResponse{}, err
+	}
+
+	walletHoldingResp := response.WalletHolding
+	walletModificationTime, err := convertTimestamp(walletHoldingResp.ModificationTime, tx)
+	if err := checkConvertedGrpcTimeErr(err); err != nil {
+		return model.AccountResponse{}, err
+	}
+
+	return model.AccountResponse{
+		Timezone:         tx,
+		CreatedAt:        createdAt,
+		ModificationTime: modifiedAt,
+		Status:           response.Status,
+		Locked:           response.Locked,
+		AccountId:        response.AccountId,
+		Wallet: model.WalletHolding{
+			ModificationTime: walletModificationTime,
+			Balance:          walletHoldingResp.Balance,
+			Currency:         walletHoldingResp.Currency,
+		},
+	}, nil
 }
 
 func NewAccountProcessor(grpcAcctService v1.AccountServiceClient) AccountProcessor {

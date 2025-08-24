@@ -44,6 +44,24 @@ func (m *AccountRequest) Validate() error {
 	return nil
 }
 
+type FindAccountRequest struct {
+	Currencies   []string `json:"currencies"`
+	AccountTypes []string `json:"accountTypes"`
+}
+
+func (m *FindAccountRequest) Validate() error {
+	if m.Currencies == nil {
+		m.Currencies = []string{}
+	}
+	if m.AccountTypes == nil {
+		m.AccountTypes = []string{}
+	}
+	if len(m.Currencies) == 0 && len(m.AccountTypes) == 0 {
+		return errors.New("at least one currency or accountType must be provided")
+	}
+	return nil
+}
+
 type AccountResponse struct {
 	Status           string        `json:"status"`
 	Locked           bool          `json:"locked"`
