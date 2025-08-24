@@ -9,9 +9,10 @@ const (
 )
 
 const (
-	XrfHeaderAppId  = "Xrf-app-id"
-	ContentType     = "Content-Type"
-	XrfAuthToken    = "XRF-auth-token"
-	ApplicationJson = "application/json"
-	SrvToSrvToken   = "xrf-to-xrf-token"
+	XrfHeaderAppId     = "Xrf-app-id"
+	XrfUserFingerPrint = "xrf-user-fp"
+	ContentType        = "Content-Type"
+	XrfAuthToken       = "XRF-auth-token"
+	ApplicationJson    = "application/json"
+	SrvToSrvToken      = "xrf-to-xrf-token"
 )

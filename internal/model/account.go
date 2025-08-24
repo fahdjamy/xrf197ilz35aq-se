@@ -13,6 +13,11 @@ type AccountRequest struct {
 }
 
 func (m *AccountRequest) Validate() error {
+	if m.Timezone == "" {
+		// set default timezone to UTC if no timezone is set
+		m.Timezone = "UTC"
+	}
+
 	acceptedTypes := map[string]bool{
 		"SAVING": true,
 		"ESCROW": true,
@@ -50,7 +55,7 @@ type AccountResponse struct {
 }
 
 type WalletHolding struct {
-	Balance          float64   `json:"balance"`
+	Balance          float32   `json:"balance"`
 	Currency         string    `json:"currency"`
 	ModificationTime time.Time `json:"modificationTime"`
 }
