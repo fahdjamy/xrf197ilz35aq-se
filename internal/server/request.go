@@ -32,7 +32,7 @@ func CreateAuthTokenHeader(token string) map[string]string {
 const UserContextKey = ContextKey("user-context")
 
 // ContextWithUserCtx returns a new context with the given user object.
-func ContextWithUserCtx(ctx context.Context, user model.UserContext) context.Context {
+func ContextWithUserCtx(ctx context.Context, user *model.UserContext) context.Context {
 	return context.WithValue(ctx, UserContextKey, user)
 }
 

@@ -39,7 +39,8 @@ func (m *AuthenticationMiddleware) Handler(next http.Handler) http.Handler {
 				return
 			}
 			// set context to the enriched context with the user context obj
-			ctx = server.ContextWithUserCtx(r.Context(), *userCtx)
+			m.logger.Debug("setting user context", "userCtx", userCtx)
+			ctx = server.ContextWithUserCtx(r.Context(), userCtx)
 		}
 
 		next.ServeHTTP(w, r.WithContext(ctx))

@@ -56,7 +56,36 @@ func (ah *accountHandler) lockAccount(w http.ResponseWriter, r *http.Request) {}
 
 func (ah *accountHandler) unlockAccount(w http.ResponseWriter, r *http.Request) {}
 
-func (ah *accountHandler) getAccounts(w http.ResponseWriter, r *http.Request) {}
+func (ah *accountHandler) getAccounts(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
+	defer logLatency(startTime, "getAccounts", *logger)
+
+	var req model.FindAccountRequest
+	if err := request.DecodeJSONBody(r, &req); err != nil {
+		response.WriteErrorResponse(err, w, *logger)
+		return
+	}
+
+	userCtx, ok := server.UserFromContext(r.Context())
+	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
+		logger.Error("invalid user context object in context", "userCtx", userCtx)
+		response.WriteErrorResponse(errors.New("invalid user context object in context"), w, *logger)
+		return
+	}
+
+	userAccounts, err := ah.processor.FindAccounts(r.Context(), *userCtx, req)
+	if err != nil {
+		response.WriteErrorResponse(err, w, *logger)
+		return
+	}
+
+	data := response.DataResponse{
+		Code: http.StatusOK,
+		Data: userAccounts,
+	}
+	response.WriteResponse(data, w, *logger)
+}
 
 func (ah *accountHandler) RegisterRoutes(serveMux *http.ServeMux) {
 	serveMux.HandleFunc("POST /api/v1/accounts", ah.getAccounts)
