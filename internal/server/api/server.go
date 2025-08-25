@@ -30,8 +30,8 @@ func CreateServer(logger *slog.Logger, appConfig internal.AppConfig, processors 
 		accountReqHandler,
 	)
 
-	for _, handler := range reqHandlers {
-		handler.RegisterRoutes(serverMux)
+	for _, reqHandler := range reqHandlers {
+		reqHandler.RegisterRoutes(serverMux)
 	}
 
 	// middlewares
@@ -39,11 +39,12 @@ func CreateServer(logger *slog.Logger, appConfig internal.AppConfig, processors 
 	authMiddleware := middleware.NewAuthenticationMiddleware(*logger, processors.AuthProcessor)
 
 	// wrap middlewares around the server
-	wrappedServer := loggerMiddleware.Handler(serverMux)
-	wrappedServer = authMiddleware.Handler(serverMux)
+	handler := loggerMiddleware.Handler(
+		authMiddleware.Handler(serverMux),
+	)
 
 	return &http.Server{
-		Handler:      wrappedServer,
+		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 16 * time.Minute,
 		IdleTimeout:  16 * time.Minute,

@@ -94,7 +94,7 @@ func WriteErrorResponse(errObj error, w http.ResponseWriter, logger slog.Logger)
 	w.Header().Set(internal.ContentType, internal.ApplicationJson)
 	w.WriteHeader(statusCode)
 
-	logger.Error("event=writeErrorResponse", "error", msg)
+	logger.Error("event=writeErrorResponse", "error", errObj.Error())
 	errResp := errorResponse{Error: msg, Code: statusCode}
 
 	err := json.NewEncoder(w).Encode(errResp)
