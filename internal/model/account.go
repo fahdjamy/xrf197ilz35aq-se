@@ -19,17 +19,20 @@ func (m *AccountRequest) Validate() error {
 	}
 
 	acceptedTypes := map[string]bool{
-		"SAVING": true,
+		"Normal": true,
+		"Escrow": true,
 		"ESCROW": true,
 	}
 	if !acceptedTypes[m.AccountType] {
 		return errors.New("invalid accountType")
 	}
 	acceptedCurrency := map[string]bool{
-		"BTC": true,
-		"ETH": true,
-		"LTC": true,
-		"XRP": true,
+		"BTC":  true,
+		"ETH":  true,
+		"LTC":  true,
+		"XRP":  true,
+		"USD":  true,
+		"XRFQ": true,
 	}
 	if !acceptedCurrency[m.Currency] {
 		return errors.New("invalid currency")

@@ -40,7 +40,7 @@ func SetupLogger(env string, config LogConfig) (*slog.Logger, error) {
 		multiWriter := slog.NewTextHandler(wo, &opts)
 
 		sLogger = slog.New(multiWriter)
-		sLogger.Info("logger setup", "logLevel", "INFO", "logOutputs", "console and file")
+		sLogger.Info("logger setup", "level", "INFO", "logOutputs", "console and file")
 		return sLogger, nil
 	}
 
@@ -50,6 +50,6 @@ func SetupLogger(env string, config LogConfig) (*slog.Logger, error) {
 		AddSource:   opts.AddSource,
 		ReplaceAttr: opts.ReplaceAttr,
 	}))
-	sLogger.Debug(fmt.Sprintf("running in %s mode", env), "logLevel", "DEBUG", "logOutput", "console only")
+	sLogger.Debug(fmt.Sprintf("running in %s mode", env), "level", "DEBUG", "logOutput", "console only")
 	return sLogger, nil
 }
