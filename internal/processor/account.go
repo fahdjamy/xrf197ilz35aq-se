@@ -2,7 +2,6 @@ package processor
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	v1 "xrf197ilz35aq/gen/account/v1"
 	"xrf197ilz35aq/internal"
@@ -38,7 +37,7 @@ func (ap *accountProcessor) CreateAccount(
 		Timezone: "UTC",
 	})
 	if err != nil {
-		return model.AccountResponse{}, fmt.Errorf("failed to create account: %w", err)
+		return model.AccountResponse{}, handleGrpcError(err)
 	}
 
 	return ap.convertAcctResponse(resp.Account, req.Timezone)
@@ -60,7 +59,7 @@ func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.User
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to find accounts: %w", err)
+		return nil, handleGrpcError(err)
 	}
 
 	if resp.Accounts == nil || len(resp.Accounts) == 0 {

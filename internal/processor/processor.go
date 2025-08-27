@@ -8,7 +8,9 @@ import (
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -65,4 +67,24 @@ func createGrpcContextWithHeaders(ctx context.Context, userCtx model.UserContext
 	// Create a new context with the metadata attached.
 	gRPCCtxWithHeaders := metadata.NewOutgoingContext(ctx, md)
 	return gRPCCtxWithHeaders
+}
+
+func handleGrpcError(err error) error {
+	if err != nil {
+		st, ok := status.FromError(err)
+		if ok {
+			// handle gRPC errors
+			if st.Code() == codes.NotFound {
+				return &internal.ExternalError{Code: 404, Message: st.Message()}
+			} else if st.Code() == codes.AlreadyExists {
+				return &internal.ExternalError{Code: 409, Message: st.Message()}
+			} else if st.Code() == codes.InvalidArgument {
+				return &internal.ExternalError{Code: 400, Message: st.Message()}
+			} else {
+				return &internal.APIClientError{Message: st.Message(), Code: 502}
+			}
+		}
+	}
+
+	return err
 }
