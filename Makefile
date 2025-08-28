@@ -5,7 +5,9 @@ proto:
 	@echo "Generating protobuf files..."
 	# Ensure the output directory exists
 	mkdir -p gen
-	# Run the protoc compiler
+
+	# Use 'find' to locate all .proto files within the 'proto' directory.
+	# The output of find is then passed as arguments to the protoc command.
 	find proto -name '*.proto' -exec protoc \
 		--proto_path=proto \
 		--go_out=./gen --go_opt=paths=source_relative \
@@ -13,4 +15,4 @@ proto:
 
 clean:
 	@echo "Cleaning up generated files..."
-	rm -rf proto/gen
+	rm -rf gen/

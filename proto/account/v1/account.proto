@@ -10,6 +10,7 @@ option go_package = "xrf197ilz35aq/gen/proto/account/v1";
 service AccountService {
   rpc FindWallet(FindWalletRequest) returns (FindWalletResponse);
   rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+  rpc FindAccountById(FindAccountByIdRequest) returns (FindAccountByIdResponse);
   rpc FindAccountsByCurrencyOrType(FindAccountsByCurrencyOrTypeRequest) returns (FindAccountsByCurrencyOrTypeResponse);
   rpc FindAccountByCurrencyAndType(FindAccountByCurrencyAndTypeRequest) returns (FindAccountByCurrencyAndTypeResponse);
 }
@@ -21,7 +22,7 @@ message AccountResponse {
   string account_type = 4;
   google.protobuf.Timestamp creation_time = 5;
   google.protobuf.Timestamp modification_time = 6;
-  WalletResponse wallet_holding = 7;
+  repeated WalletResponse wallets = 7;
 }
 
 ///// Create account
@@ -45,6 +46,7 @@ message CreateAccountResponse {
 message FindAccountByCurrencyAndTypeRequest {
   string currency = 1;
   string acct_type = 2;
+  bool include_wallets = 3;
 }
 
 message FindAccountByCurrencyAndTypeResponse {
@@ -54,6 +56,7 @@ message FindAccountByCurrencyAndTypeResponse {
 ////// Get account balance
 message FindWalletRequest {
   string account_id = 1;
+  string currency = 2;
 }
 
 message FindWalletResponse {
@@ -72,8 +75,18 @@ message AccountTypesList {
 message FindAccountsByCurrencyOrTypeRequest {
   optional CurrencyList currencies = 1;
   optional AccountTypesList acct_types = 2;
+  bool include_wallets = 3;
 }
 
 message FindAccountsByCurrencyOrTypeResponse {
   repeated AccountResponse accounts = 1;
+}
+///// Find Account by AccountId
+message FindAccountByIdRequest {
+  string account_id = 1;
+  bool include_wallets = 2;
+}
+
+message FindAccountByIdResponse {
+  AccountResponse account = 1;
 }
