@@ -66,13 +66,13 @@ func (m *FindAccountRequest) Validate() error {
 }
 
 type AccountResponse struct {
-	Status           string        `json:"status"`
-	Locked           bool          `json:"locked"`
-	AccountId        string        `json:"accountId"`
-	CreatedAt        time.Time     `json:"createdAt"`
-	Timezone         string        `json:"timezone"`
-	ModificationTime time.Time     `json:"modificationTime"`
-	Wallet           WalletHolding `json:"walletHolding"`
+	Status           string          `json:"status"`
+	Locked           bool            `json:"locked"`
+	AccountId        string          `json:"accountId"`
+	CreatedAt        time.Time       `json:"createdAt"`
+	Timezone         string          `json:"timezone"`
+	Wallets          []WalletHolding `json:"wallets"`
+	ModificationTime time.Time       `json:"modificationTime"`
 }
 
 type WalletHolding struct {
