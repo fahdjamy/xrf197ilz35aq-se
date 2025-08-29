@@ -9,6 +9,7 @@ import (
 )
 
 type AccountProcessor interface {
+	FindAccountByID(ctx context.Context, userCtx model.UserContext, acctId string) (model.AccountResponse, error)
 	CreateAccount(ctx context.Context, userCtx model.UserContext, req model.AccountRequest) (model.AccountResponse, error)
 	FindAccounts(ctx context.Context, userCtx model.UserContext, req model.FindAccountRequest) ([]model.AccountResponse, error)
 }
@@ -40,7 +41,7 @@ func (ap *accountProcessor) CreateAccount(
 		return model.AccountResponse{}, handleGrpcError(err)
 	}
 
-	return ap.convertAcctResponse(resp.Account, req.Timezone)
+	return convertAcctResponse(resp.Account, req.Timezone)
 }
 
 func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.UserContext,
@@ -68,7 +69,7 @@ func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.User
 
 	var accounts []model.AccountResponse
 	for _, account := range resp.Accounts {
-		response, err := ap.convertAcctResponse(account, "UTC")
+		response, err := convertAcctResponse(account, "UTC")
 		if err != nil {
 			return []model.AccountResponse{}, &internal.ServerError{
 				Message: err.Error(),
@@ -81,34 +82,74 @@ func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.User
 	return accounts, nil
 }
 
-func (ap *accountProcessor) convertAcctResponse(response *v1.AccountResponse, tx string) (model.AccountResponse, error) {
-	createdAt, err := convertTimestamp(response.CreationTime, tx)
+func (ap *accountProcessor) FindAccountByID(ctx context.Context, userCtx model.UserContext, acctId string) (model.AccountResponse, error) {
+
+	gRPCCtxWithHeaders := createGrpcContextWithHeaders(ctx, userCtx)
+
+	resp, err := ap.grpcAcctClient.FindAccountById(gRPCCtxWithHeaders, &v1.FindAccountByIdRequest{
+		AccountId:      acctId,
+		IncludeWallets: false,
+	})
+	if err != nil {
+		return model.AccountResponse{}, handleGrpcError(err)
+	}
+
+	if resp.Account == nil {
+		return model.AccountResponse{}, &internal.ExternalError{
+			Message: "Account not found",
+			Code:    http.StatusNotFound,
+		}
+	}
+
+	return convertAcctResponse(resp.Account, "UTC")
+}
+
+func convertAcctResponse(response *v1.AccountResponse, timezone string) (model.AccountResponse, error) {
+	createdAt, err := convertTimestamp(response.CreationTime, timezone)
 	if err := checkConvertedGrpcTimeErr(err); err != nil {
 		return model.AccountResponse{}, err
 	}
-	modifiedAt, err := convertTimestamp(response.ModificationTime, tx)
+	modifiedAt, err := convertTimestamp(response.ModificationTime, timezone)
 	if err := checkConvertedGrpcTimeErr(err); err != nil {
 		return model.AccountResponse{}, err
 	}
 
-	walletHoldingResp := response.WalletHolding
-	walletModificationTime, err := convertTimestamp(walletHoldingResp.ModificationTime, tx)
+	walletHoldingResp := response.Wallets
 	if err := checkConvertedGrpcTimeErr(err); err != nil {
 		return model.AccountResponse{}, err
+	}
+
+	convertedWallets := make([]model.WalletHolding, len(walletHoldingResp))
+
+	for _, wallet := range walletHoldingResp {
+		convertedWallet, err := convertWalletResponse(wallet, timezone)
+		if err != nil {
+			return model.AccountResponse{}, err
+		}
+		convertedWallets = append(convertedWallets, convertedWallet)
 	}
 
 	return model.AccountResponse{
-		Timezone:         tx,
+		Timezone:         timezone,
 		CreatedAt:        createdAt,
 		ModificationTime: modifiedAt,
 		Status:           response.Status,
 		Locked:           response.Locked,
+		Wallets:          convertedWallets,
 		AccountId:        response.AccountId,
-		Wallet: model.WalletHolding{
-			ModificationTime: walletModificationTime,
-			Balance:          walletHoldingResp.Balance,
-			Currency:         walletHoldingResp.Currency,
-		},
+	}, nil
+}
+
+func convertWalletResponse(wallet *v1.WalletResponse, timezone string) (model.WalletHolding, error) {
+	walletModificationTime, err := convertTimestamp(wallet.ModificationTime, timezone)
+	if err := checkConvertedGrpcTimeErr(err); err != nil {
+		return model.WalletHolding{}, err
+	}
+
+	return model.WalletHolding{
+		Balance:          wallet.Balance,
+		Currency:         wallet.Currency,
+		ModificationTime: walletModificationTime,
 	}, nil
 }
 

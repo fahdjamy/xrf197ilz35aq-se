@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server"
@@ -29,7 +30,7 @@ func (ah *accountHandler) createAccount(w http.ResponseWriter, r *http.Request) 
 	}
 
 	userCtx, ok := server.UserFromContext(r.Context())
-	if !ok || userCtx == nil || userCtx.UserId == "" {
+	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
 		response.WriteErrorResponse(errors.New("invalid user context object in context"), w, *logger)
 		return
 	}
@@ -48,7 +49,29 @@ func (ah *accountHandler) createAccount(w http.ResponseWriter, r *http.Request) 
 	response.WriteResponse(data, w, *logger)
 }
 
-func (ah *accountHandler) getAccountById(w http.ResponseWriter, r *http.Request) {}
+func (ah *accountHandler) getAccountById(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
+	defer logLatency(startTime, "getAccountById", *logger)
+
+	accountId, isValid := getAndValidateId(r, "accountId")
+	if !isValid {
+		externalError := internal.ExternalError{Message: "Account not found", Code: http.StatusBadRequest}
+		response.WriteErrorResponse(&externalError, w, *logger)
+		return
+	}
+
+	userCtx, ok := server.UserFromContext(r.Context())
+	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
+		response.WriteErrorResponse(errors.New("invalid user context object in context"), w, *logger)
+		return
+	}
+
+	//// Call processor
+	savedAccount, err := ah.processor.FindAccountByID(r.Context(), *userCtx, accountId)
+
+	handleProcessorResponse(savedAccount, err, w, *logger, http.StatusOK)
+}
 
 func (ah *accountHandler) updateAccount(w http.ResponseWriter, r *http.Request) {}
 
@@ -90,10 +113,10 @@ func (ah *accountHandler) getAccounts(w http.ResponseWriter, r *http.Request) {
 func (ah *accountHandler) RegisterRoutes(serveMux *http.ServeMux) {
 	serveMux.HandleFunc("POST /api/v1/accounts", ah.getAccounts)
 	serveMux.HandleFunc("POST /api/v1/account", ah.createAccount)
-	serveMux.HandleFunc("PUT /api/v1/account/{account}", ah.updateAccount)
-	serveMux.HandleFunc("GET /api/v1/account/{account}", ah.getAccountById)
-	serveMux.HandleFunc("POST /api/v1/account/{account}/lock", ah.lockAccount)
-	serveMux.HandleFunc("POST /api/v1/account/{account}/unlock", ah.unlockAccount)
+	serveMux.HandleFunc("PUT /api/v1/account/{accountId}", ah.updateAccount)
+	serveMux.HandleFunc("GET /api/v1/account/{accountId}", ah.getAccountById)
+	serveMux.HandleFunc("POST /api/v1/account/{accountId}/lock", ah.lockAccount)
+	serveMux.HandleFunc("POST /api/v1/account/{accountId}/unlock", ah.unlockAccount)
 }
 
 func NewAccountHandler(defaultLogger slog.Logger, processor processor.AccountProcessor) RequestHandler {
