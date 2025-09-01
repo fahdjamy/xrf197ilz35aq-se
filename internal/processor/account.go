@@ -55,8 +55,8 @@ func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.User
 
 	gRPCCtxWithHeaders := createGrpcContextWithHeaders(ctx, userCtx)
 	resp, err := ap.grpcAcctClient.FindAccountsByCurrencyOrType(gRPCCtxWithHeaders, &v1.FindAccountsByCurrencyOrTypeRequest{
-		Currencies: &v1.CurrencyList{Currencies: req.Currencies},
-		AcctTypes:  &v1.AccountTypesList{Types: req.AccountTypes},
+		Currencies: req.Currencies,
+		AcctTypes:  req.AccountTypes,
 	})
 
 	if err != nil {
@@ -119,7 +119,7 @@ func convertAcctResponse(response *v1.AccountResponse, timezone string) (model.A
 		return model.AccountResponse{}, err
 	}
 
-	convertedWallets := make([]model.WalletHolding, len(walletHoldingResp))
+	var convertedWallets []model.WalletHolding
 
 	for _, wallet := range walletHoldingResp {
 		convertedWallet, err := convertWalletResponse(wallet, timezone)

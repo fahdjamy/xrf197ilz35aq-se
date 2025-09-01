@@ -20,7 +20,7 @@ type APIClientError struct {
 }
 
 func (e *APIClientError) Error() string {
-	return fmt.Sprintf("api client error: %s, code: %d", e.Message, e.Code)
+	return e.Message
 }
 
 type ServerError struct {
