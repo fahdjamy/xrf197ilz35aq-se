@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"time"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
@@ -21,9 +20,7 @@ type accountHandler struct {
 var invalidUserCtxErr = errors.New("invalid user context object in context")
 
 func (ah *accountHandler) createAccount(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
-	defer logLatency(startTime, "createAccount", *logger)
 
 	var req model.AccountRequest
 	if err := request.DecodeJSONBody(r, &req); err != nil {
@@ -52,11 +49,9 @@ func (ah *accountHandler) createAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ah *accountHandler) getAccountById(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
-	defer logLatency(startTime, "getAccountById", *logger)
-
 	accountId, isValid := getAndValidateId(r, "accountId")
+
 	if !isValid {
 		externalError := internal.ExternalError{Message: "Invalid/missing accountId", Code: http.StatusBadRequest}
 		response.WriteErrorResponse(&externalError, w, *logger)
@@ -76,9 +71,7 @@ func (ah *accountHandler) getAccountById(w http.ResponseWriter, r *http.Request)
 }
 
 func (ah *accountHandler) updateAccount(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
-	defer logLatency(startTime, "updateAccount", *logger)
 
 	var req model.UpdateAccountRequest
 	if err := request.DecodeJSONBody(r, &req); err != nil {
@@ -108,9 +101,7 @@ func (ah *accountHandler) updateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ah *accountHandler) lockAccount(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
-	defer logLatency(startTime, "lockAccount", *logger)
 
 	userCtx, ok := server.UserFromContext(r.Context())
 	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
@@ -135,9 +126,7 @@ func (ah *accountHandler) lockAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ah *accountHandler) unlockAccount(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
-	defer logLatency(startTime, "unlockAccount", *logger)
 
 	userCtx, ok := server.UserFromContext(r.Context())
 	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
@@ -162,9 +151,7 @@ func (ah *accountHandler) unlockAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ah *accountHandler) getAccounts(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
-	defer logLatency(startTime, "getAccounts", *logger)
 
 	var req model.FindAccountRequest
 	if err := request.DecodeJSONBody(r, &req); err != nil {

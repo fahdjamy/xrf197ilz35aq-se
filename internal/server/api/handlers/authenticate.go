@@ -3,7 +3,6 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
-	"time"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
 	"xrf197ilz35aq/internal/server"
@@ -17,9 +16,7 @@ type AuthHandler struct {
 }
 
 func (auth *AuthHandler) authenticateUser(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), auth.defaultLogger)
-	defer logLatency(startTime, "authenticateUser", *logger)
 
 	var req model.AuthRequest
 

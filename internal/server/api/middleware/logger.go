@@ -66,11 +66,11 @@ func (lh *LoggerHandler) Handler(next http.Handler) http.Handler {
 		timeTaken := time.Since(start)
 		status := wrappedWriter.status
 
+		data := wrappedWriter.body.String()
 		if status >= 400 {
-			errBody := wrappedWriter.body.String()
-			loggerWithReqId.Error("event=response", "url", path, "timeTaken", timeTaken, "error", errBody)
+			loggerWithReqId.Error("event=response", "url", path, "latency", timeTaken, "error", data, "status", status)
 		} else {
-			loggerWithReqId.Info("event=response", "url", path, "status", status)
+			loggerWithReqId.Info("event=response", "url", path, "latency", timeTaken, "status", status, "body", data)
 		}
 	})
 }

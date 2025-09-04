@@ -3,7 +3,6 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
-	"time"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 	"xrf197ilz35aq/internal/processor"
@@ -18,9 +17,7 @@ type userHandler struct {
 }
 
 func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), uh.defaultLogger)
-	defer logLatency(startTime, "createUser", *logger)
 	var userReq model.UserRequest
 
 	err := request.DecodeJSONBody(r, &userReq)
@@ -44,9 +41,7 @@ func (uh *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), uh.defaultLogger)
-	defer logLatency(startTime, "getUser", *logger)
 
 	userId, isValid := getAndValidateId(r, "userId")
 	if !isValid {
