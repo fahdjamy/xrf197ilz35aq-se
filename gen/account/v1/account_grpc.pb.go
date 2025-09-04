@@ -23,6 +23,9 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccountServiceClient interface {
 	FindWallet(ctx context.Context, in *FindWalletRequest, opts ...grpc.CallOption) (*FindWalletResponse, error)
+	LockAccount(ctx context.Context, in *LockAccountRequest, opts ...grpc.CallOption) (*LockAccountResponse, error)
+	UpdateAccount(ctx context.Context, in *UpdateAccountRequest, opts ...grpc.CallOption) (*UpdateAccountResponse, error)
+	FreezeAccount(ctx context.Context, in *FreezeAccountRequest, opts ...grpc.CallOption) (*FreezeAccountResponse, error)
 	CreateAccount(ctx context.Context, in *CreateAccountRequest, opts ...grpc.CallOption) (*CreateAccountResponse, error)
 	FindAccountById(ctx context.Context, in *FindAccountByIdRequest, opts ...grpc.CallOption) (*FindAccountByIdResponse, error)
 	FindAccountsByCurrencyOrType(ctx context.Context, in *FindAccountsByCurrencyOrTypeRequest, opts ...grpc.CallOption) (*FindAccountsByCurrencyOrTypeResponse, error)
@@ -40,6 +43,33 @@ func NewAccountServiceClient(cc grpc.ClientConnInterface) AccountServiceClient {
 func (c *accountServiceClient) FindWallet(ctx context.Context, in *FindWalletRequest, opts ...grpc.CallOption) (*FindWalletResponse, error) {
 	out := new(FindWalletResponse)
 	err := c.cc.Invoke(ctx, "/proto.account.v1.AccountService/FindWallet", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) LockAccount(ctx context.Context, in *LockAccountRequest, opts ...grpc.CallOption) (*LockAccountResponse, error) {
+	out := new(LockAccountResponse)
+	err := c.cc.Invoke(ctx, "/proto.account.v1.AccountService/LockAccount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) UpdateAccount(ctx context.Context, in *UpdateAccountRequest, opts ...grpc.CallOption) (*UpdateAccountResponse, error) {
+	out := new(UpdateAccountResponse)
+	err := c.cc.Invoke(ctx, "/proto.account.v1.AccountService/UpdateAccount", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountServiceClient) FreezeAccount(ctx context.Context, in *FreezeAccountRequest, opts ...grpc.CallOption) (*FreezeAccountResponse, error) {
+	out := new(FreezeAccountResponse)
+	err := c.cc.Invoke(ctx, "/proto.account.v1.AccountService/FreezeAccount", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +117,9 @@ func (c *accountServiceClient) FindAccountByCurrencyAndType(ctx context.Context,
 // for forward compatibility
 type AccountServiceServer interface {
 	FindWallet(context.Context, *FindWalletRequest) (*FindWalletResponse, error)
+	LockAccount(context.Context, *LockAccountRequest) (*LockAccountResponse, error)
+	UpdateAccount(context.Context, *UpdateAccountRequest) (*UpdateAccountResponse, error)
+	FreezeAccount(context.Context, *FreezeAccountRequest) (*FreezeAccountResponse, error)
 	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
 	FindAccountById(context.Context, *FindAccountByIdRequest) (*FindAccountByIdResponse, error)
 	FindAccountsByCurrencyOrType(context.Context, *FindAccountsByCurrencyOrTypeRequest) (*FindAccountsByCurrencyOrTypeResponse, error)
@@ -100,6 +133,15 @@ type UnimplementedAccountServiceServer struct {
 
 func (UnimplementedAccountServiceServer) FindWallet(context.Context, *FindWalletRequest) (*FindWalletResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindWallet not implemented")
+}
+func (UnimplementedAccountServiceServer) LockAccount(context.Context, *LockAccountRequest) (*LockAccountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LockAccount not implemented")
+}
+func (UnimplementedAccountServiceServer) UpdateAccount(context.Context, *UpdateAccountRequest) (*UpdateAccountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAccount not implemented")
+}
+func (UnimplementedAccountServiceServer) FreezeAccount(context.Context, *FreezeAccountRequest) (*FreezeAccountResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FreezeAccount not implemented")
 }
 func (UnimplementedAccountServiceServer) CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAccount not implemented")
@@ -140,6 +182,60 @@ func _AccountService_FindWallet_Handler(srv interface{}, ctx context.Context, de
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AccountServiceServer).FindWallet(ctx, req.(*FindWalletRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountService_LockAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LockAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).LockAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.account.v1.AccountService/LockAccount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).LockAccount(ctx, req.(*LockAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountService_UpdateAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).UpdateAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.account.v1.AccountService/UpdateAccount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).UpdateAccount(ctx, req.(*UpdateAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountService_FreezeAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FreezeAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountServiceServer).FreezeAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.account.v1.AccountService/FreezeAccount",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountServiceServer).FreezeAccount(ctx, req.(*FreezeAccountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -226,6 +322,18 @@ var AccountService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FindWallet",
 			Handler:    _AccountService_FindWallet_Handler,
+		},
+		{
+			MethodName: "LockAccount",
+			Handler:    _AccountService_LockAccount_Handler,
+		},
+		{
+			MethodName: "UpdateAccount",
+			Handler:    _AccountService_UpdateAccount_Handler,
+		},
+		{
+			MethodName: "FreezeAccount",
+			Handler:    _AccountService_FreezeAccount_Handler,
 		},
 		{
 			MethodName: "CreateAccount",
