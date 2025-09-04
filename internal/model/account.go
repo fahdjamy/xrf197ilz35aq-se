@@ -12,6 +12,12 @@ type AccountRequest struct {
 	AccountType string `json:"accountType" validate:"required"`
 }
 
+type UpdateAccountRequest struct {
+	Currency    string `json:"currency"`
+	Timezone    string `json:"timezone"`
+	AccountType string `json:"accountType"`
+}
+
 func (m *AccountRequest) Validate() error {
 	if m.Timezone == "" {
 		// set default timezone to UTC if no timezone is set

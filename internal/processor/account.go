@@ -9,8 +9,11 @@ import (
 )
 
 type AccountProcessor interface {
+	LockAccount(ctx context.Context, userCtx model.UserContext, acctId string) (bool, error)
+	UnlockAccount(ctx context.Context, userCtx model.UserContext, acctId string) (bool, error)
 	FindAccountByID(ctx context.Context, userCtx model.UserContext, acctId string) (model.AccountResponse, error)
 	CreateAccount(ctx context.Context, userCtx model.UserContext, req model.AccountRequest) (model.AccountResponse, error)
+	UpdateAccount(ctx context.Context, userCtx model.UserContext, acctId string, req model.UpdateAccountRequest) (bool, error)
 	FindAccounts(ctx context.Context, userCtx model.UserContext, req model.FindAccountRequest) ([]model.AccountResponse, error)
 }
 
@@ -83,7 +86,6 @@ func (ap *accountProcessor) FindAccounts(ctx context.Context, userCtx model.User
 }
 
 func (ap *accountProcessor) FindAccountByID(ctx context.Context, userCtx model.UserContext, acctId string) (model.AccountResponse, error) {
-
 	gRPCCtxWithHeaders := createGrpcContextWithHeaders(ctx, userCtx)
 
 	resp, err := ap.grpcAcctClient.FindAccountById(gRPCCtxWithHeaders, &v1.FindAccountByIdRequest{
@@ -102,6 +104,44 @@ func (ap *accountProcessor) FindAccountByID(ctx context.Context, userCtx model.U
 	}
 
 	return convertAcctResponse(resp.Account, "UTC")
+}
+
+func (ap *accountProcessor) LockAccount(ctx context.Context, userCtx model.UserContext, acctId string) (bool, error) {
+	gRPCCtxWithHeaders := createGrpcContextWithHeaders(ctx, userCtx)
+	resp, err := ap.grpcAcctClient.LockAccount(gRPCCtxWithHeaders, &v1.LockAccountRequest{
+		AccountId: acctId,
+		Lock:      true,
+	})
+	if err != nil {
+		return false, handleGrpcError(err)
+	}
+	return resp.Success, nil
+}
+
+func (ap *accountProcessor) UnlockAccount(ctx context.Context, userCtx model.UserContext, acctId string) (bool, error) {
+	gRPCCtxWithHeaders := createGrpcContextWithHeaders(ctx, userCtx)
+	resp, err := ap.grpcAcctClient.LockAccount(gRPCCtxWithHeaders, &v1.LockAccountRequest{
+		AccountId: acctId,
+		Lock:      false,
+	})
+	if err != nil {
+		return false, handleGrpcError(err)
+	}
+	return resp.Success, nil
+}
+
+func (ap *accountProcessor) UpdateAccount(ctx context.Context, userCtx model.UserContext, acctId string, req model.UpdateAccountRequest) (bool, error) {
+	gRPCCtxWithHeaders := createGrpcContextWithHeaders(ctx, userCtx)
+	resp, err := ap.grpcAcctClient.UpdateAccount(gRPCCtxWithHeaders, &v1.UpdateAccountRequest{
+		AccountId:   acctId,
+		Timezone:    &req.Timezone,
+		AccountType: &req.AccountType,
+	})
+	if err != nil {
+		return false, handleGrpcError(err)
+	}
+
+	return resp.Updated, err
 }
 
 func convertAcctResponse(response *v1.AccountResponse, timezone string) (model.AccountResponse, error) {

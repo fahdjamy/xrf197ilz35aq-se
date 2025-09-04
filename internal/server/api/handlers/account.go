@@ -113,10 +113,10 @@ func (ah *accountHandler) getAccounts(w http.ResponseWriter, r *http.Request) {
 func (ah *accountHandler) RegisterRoutes(serveMux *http.ServeMux) {
 	serveMux.HandleFunc("POST /api/v1/accounts", ah.getAccounts)
 	serveMux.HandleFunc("POST /api/v1/account", ah.createAccount)
-	serveMux.HandleFunc("PUT /api/v1/account/{accountId}", ah.updateAccount)
+	serveMux.HandleFunc("PUT /api/v1/accounts/{accountId}", ah.updateAccount)
 	serveMux.HandleFunc("GET /api/v1/accounts/{accountId}", ah.getAccountById)
-	serveMux.HandleFunc("POST /api/v1/account/{accountId}/lock", ah.lockAccount)
-	serveMux.HandleFunc("POST /api/v1/account/{accountId}/unlock", ah.unlockAccount)
+	serveMux.HandleFunc("POST /api/v1/accounts/{accountId}/lock", ah.lockAccount)
+	serveMux.HandleFunc("POST /api/v1/accounts/{accountId}/unlock", ah.unlockAccount)
 }
 
 func NewAccountHandler(defaultLogger slog.Logger, processor processor.AccountProcessor) RequestHandler {
