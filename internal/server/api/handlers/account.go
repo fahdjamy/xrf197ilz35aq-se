@@ -18,6 +18,8 @@ type accountHandler struct {
 	processor     processor.AccountProcessor
 }
 
+var invalidUserCtxErr = errors.New("invalid user context object in context")
+
 func (ah *accountHandler) createAccount(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
@@ -56,7 +58,7 @@ func (ah *accountHandler) getAccountById(w http.ResponseWriter, r *http.Request)
 
 	accountId, isValid := getAndValidateId(r, "accountId")
 	if !isValid {
-		externalError := internal.ExternalError{Message: "Account not found", Code: http.StatusBadRequest}
+		externalError := internal.ExternalError{Message: "Invalid/missing accountId", Code: http.StatusBadRequest}
 		response.WriteErrorResponse(&externalError, w, *logger)
 		return
 	}
@@ -73,11 +75,91 @@ func (ah *accountHandler) getAccountById(w http.ResponseWriter, r *http.Request)
 	handleProcessorResponse(savedAccount, err, w, *logger, http.StatusOK)
 }
 
-func (ah *accountHandler) updateAccount(w http.ResponseWriter, r *http.Request) {}
+func (ah *accountHandler) updateAccount(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
+	defer logLatency(startTime, "updateAccount", *logger)
 
-func (ah *accountHandler) lockAccount(w http.ResponseWriter, r *http.Request) {}
+	var req model.UpdateAccountRequest
+	if err := request.DecodeJSONBody(r, &req); err != nil {
+		response.WriteErrorResponse(err, w, *logger)
+		return
+	}
 
-func (ah *accountHandler) unlockAccount(w http.ResponseWriter, r *http.Request) {}
+	userCtx, ok := server.UserFromContext(r.Context())
+	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
+		response.WriteErrorResponse(invalidUserCtxErr, w, *logger)
+		return
+	}
+
+	accountId, isValid := getAndValidateId(r, "accountId")
+	if !isValid {
+		externalError := internal.ExternalError{Message: "Invalid/missing accountId", Code: http.StatusBadRequest}
+		response.WriteErrorResponse(&externalError, w, *logger)
+		return
+	}
+
+	accountUpdated, err := ah.processor.UpdateAccount(r.Context(), *userCtx, accountId, req)
+	if err == nil && !accountUpdated {
+		err = errors.New("account not updated")
+	}
+
+	handleProcessorResponse(accountUpdated, err, w, *logger, http.StatusOK)
+}
+
+func (ah *accountHandler) lockAccount(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
+	defer logLatency(startTime, "lockAccount", *logger)
+
+	userCtx, ok := server.UserFromContext(r.Context())
+	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
+		response.WriteErrorResponse(invalidUserCtxErr, w, *logger)
+		return
+	}
+
+	accountId, isValid := getAndValidateId(r, "accountId")
+	if !isValid {
+		externalError := internal.ExternalError{Message: "Invalid/missing accountId", Code: http.StatusBadRequest}
+		response.WriteErrorResponse(&externalError, w, *logger)
+		return
+	}
+
+	locked, err := ah.processor.LockAccount(r.Context(), *userCtx, accountId)
+
+	if err == nil && !locked {
+		err = errors.New("account not locked")
+	}
+
+	handleProcessorResponse(locked, err, w, *logger, http.StatusOK)
+}
+
+func (ah *accountHandler) unlockAccount(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+	logger := server.LoggerFromContext(r.Context(), ah.defaultLogger)
+	defer logLatency(startTime, "unlockAccount", *logger)
+
+	userCtx, ok := server.UserFromContext(r.Context())
+	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
+		response.WriteErrorResponse(invalidUserCtxErr, w, *logger)
+		return
+	}
+
+	accountId, isValid := getAndValidateId(r, "accountId")
+	if !isValid {
+		externalError := internal.ExternalError{Message: "Invalid/missing accountId", Code: http.StatusBadRequest}
+		response.WriteErrorResponse(&externalError, w, *logger)
+		return
+	}
+
+	unlocked, err := ah.processor.LockAccount(r.Context(), *userCtx, accountId)
+
+	if err == nil && !unlocked {
+		err = errors.New("account has not been unlocked")
+	}
+
+	handleProcessorResponse(unlocked, err, w, *logger, http.StatusOK)
+}
 
 func (ah *accountHandler) getAccounts(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
@@ -92,8 +174,7 @@ func (ah *accountHandler) getAccounts(w http.ResponseWriter, r *http.Request) {
 
 	userCtx, ok := server.UserFromContext(r.Context())
 	if !ok || userCtx == nil || userCtx.Fingerprint == "" {
-		logger.Error("invalid user context object in context", "userCtx", userCtx)
-		response.WriteErrorResponse(errors.New("invalid user context object in context"), w, *logger)
+		response.WriteErrorResponse(invalidUserCtxErr, w, *logger)
 		return
 	}
 
@@ -115,8 +196,8 @@ func (ah *accountHandler) RegisterRoutes(serveMux *http.ServeMux) {
 	serveMux.HandleFunc("POST /api/v1/account", ah.createAccount)
 	serveMux.HandleFunc("PUT /api/v1/accounts/{accountId}", ah.updateAccount)
 	serveMux.HandleFunc("GET /api/v1/accounts/{accountId}", ah.getAccountById)
-	serveMux.HandleFunc("POST /api/v1/accounts/{accountId}/lock", ah.lockAccount)
-	serveMux.HandleFunc("POST /api/v1/accounts/{accountId}/unlock", ah.unlockAccount)
+	serveMux.HandleFunc("PATCH /api/v1/accounts/{accountId}/lock", ah.lockAccount)
+	serveMux.HandleFunc("PATCH /api/v1/accounts/{accountId}/unlock", ah.unlockAccount)
 }
 
 func NewAccountHandler(defaultLogger slog.Logger, processor processor.AccountProcessor) RequestHandler {
