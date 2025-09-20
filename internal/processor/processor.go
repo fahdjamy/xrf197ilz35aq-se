@@ -17,6 +17,7 @@ import (
 type Processors struct {
 	UserProcessor    UserProcessor
 	AuthProcessor    AuthProcessor
+	AssetProcessor   AssetProcessor
 	AccountProcessor AccountProcessor
 }
 
