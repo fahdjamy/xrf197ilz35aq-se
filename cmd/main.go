@@ -67,6 +67,7 @@ func main() {
 	}
 
 	///// Create request processors
+	assetProcessor := processor.NewAssetProcessor()
 	userProcessor := processor.NewUserProcessor(*apiClient)
 	authProcessor := processor.NewAuthProcessor(*apiClient)
 	accountProcessor := processor.NewAccountProcessor(acctServiceClient)
@@ -74,6 +75,7 @@ func main() {
 	processors := processor.Processors{
 		UserProcessor:    *userProcessor,
 		AuthProcessor:    *authProcessor,
+		AssetProcessor:   assetProcessor,
 		AccountProcessor: accountProcessor,
 	}
 

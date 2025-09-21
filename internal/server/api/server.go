@@ -17,9 +17,9 @@ func CreateServer(logger *slog.Logger, appConfig internal.AppConfig, processors 
 	reqHandlers := make([]handlers.RequestHandler, 0)
 
 	// create request (routes) handlers
-	assetReqHandler := handlers.NewAssetHandler(*logger)
 	healthReqHandler := handlers.NewReqHealthHandlers(*logger)
 	authReqHandler := handlers.NewAuthHandler(*logger, processors.AuthProcessor)
+	assetReqHandler := handlers.NewAssetHandler(*logger, processors.AssetProcessor)
 	userReqHandler := handlers.NewUserReqHandler(*logger, processors.UserProcessor)
 	accountReqHandler := handlers.NewAccountHandler(*logger, processors.AccountProcessor)
 
