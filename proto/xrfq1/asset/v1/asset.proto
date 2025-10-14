@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package asset_rpc;
+
+import "google/protobuf/timestamp.proto";
+
+message CreateRequest {
+  string name = 1;
+  string symbol = 2;
+  string description = 3;
+  string organization = 4;
+}
+
+message CreateResponse {
+  string asset_id = 1;
+}
+
+message Asset {
+  string id = 1;
+  string name = 2;
+  string symbol = 3;
+  bool tradable = 4;
+  bool listable = 5;
+  string updated_by = 6;
+  string description = 7;
+  string organization = 8;
+  // client will have to handle the formatting of the timezone basing on the user locale
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message GetAssetByIdRequest {
+  string asset_id = 1;
+}
+
+message GetAssetByIdResponse {
+  Asset asset = 1;
+}
+
+//////
+
+message GetPaginatedAssetsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string sort_order = 3;
+  optional string symbol = 4;
+}
+
+message GetPaginatedAssetsResponse {
+  int32 total = 1;
+  int32 offset = 2;
+  repeated Asset assets = 3;
+}
+
+/////
+
+message GetStreamedAssetsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string sort_order = 3;
+  optional string symbol = 4;
+}
+
+message GetStreamedAssetsResponse {
+  int32 total = 1;
+  int32 offset = 2;
+  repeated Asset assets = 3;
+}
+
+///// Assets by name
+
+message GetAssetsNameLikeRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+  string name = 3;
+  string sort_order = 4;
+}
+
+message GetAssetsNameLikeResponse {
+  int32 total = 1;
+  int32 offset = 2;
+  repeated Asset assets = 3;
+}
+
+///// Update Asset
+
+message UpdateAssetRequest {
+  string org_id = 1;
+  string asset_id = 2;
+  optional string name = 3;
+  optional string symbol = 4;
+  optional bool listable = 5;
+  optional bool tradable = 6;
+  optional string description = 7;
+}
+
+message UpdateAssetResponse {
+  bool updated = 1;
+}
+
+///// Delete Asset
+
+message DeleteAssetRequest {
+  string org_id = 1;
+  string asset_id = 2;
+}
+
+message DeleteAssetResponse {
+  bool deleted = 1;
+}
+
+///// Delete Asset
+
+message TransferAssetRequest {
+  string org_id = 1;
+  string asset_id = 2;
+  string new_owner_fp = 3;
+  string new_owner_org_id = 4;
+}
+
+message TransferAssetResponse {
+  string certificate_id = 1;
+}
+
+service AssetService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc UpdateAsset(UpdateAssetRequest) returns (UpdateAssetResponse);
+  rpc DeleteAsset(DeleteAssetRequest) returns (DeleteAssetResponse);
+  rpc GetAssetById(GetAssetByIdRequest) returns (GetAssetByIdResponse);
+  rpc TransferAsset(TransferAssetRequest) returns (TransferAssetResponse);
+  rpc GetAssetsNameLike(GetAssetsNameLikeRequest) returns (GetAssetsNameLikeResponse);
+  rpc GetPaginatedAssets(GetPaginatedAssetsRequest) returns (GetPaginatedAssetsResponse);
+  rpc GetStreamedAssets(GetStreamedAssetsRequest) returns (stream GetStreamedAssetsResponse);
+}
