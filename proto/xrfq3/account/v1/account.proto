@@ -4,8 +4,8 @@ package proto.account.v1;
 
 import "google/protobuf/timestamp.proto";
 
-// It should be: "{go_module_name}/gen/proto/account/v1"
-option go_package = "xrf197ilz35aq/gen/proto/account/v1";
+// It should be: "{go_module_name}/gen/proto/xrfq1/account/v1"
+option go_package = "xrf197ilz35aq/gen/proto/xrfq1/account/v1";
 
 service AccountService {
   rpc FindWallet(FindWalletRequest) returns (FindWalletResponse);
