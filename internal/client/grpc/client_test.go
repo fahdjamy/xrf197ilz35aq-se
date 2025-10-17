@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 	"testing"
-	v1 "xrf197ilz35aq/gen/account/v1"
+	v1 "xrf197ilz35aq/gen/xrfq3/account/v1"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
