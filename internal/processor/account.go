@@ -3,7 +3,7 @@ package processor
 import (
 	"context"
 	"net/http"
-	v1 "xrf197ilz35aq/gen/account/v1"
+	v1 "xrf197ilz35aq/gen/xrfq3/account/v1"
 	"xrf197ilz35aq/internal"
 	"xrf197ilz35aq/internal/model"
 )
